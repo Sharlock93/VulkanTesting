@@ -34,3 +34,4 @@
 *.pdb
 *.ilk
 
+!src/opengl_window.c

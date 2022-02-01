@@ -33,5 +33,6 @@
 *.obj
 *.pdb
 *.ilk
+*.gfxr
 
 src/opengl_window.c

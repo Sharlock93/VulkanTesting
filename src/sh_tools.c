@@ -61,12 +61,12 @@ FILETIME sh_get_file_last_write(char *filename) {
 
 }
 
-bool sh_check_file_changed(char *filename, FILETIME *last_write_time, FILETIME *last_write_time_out) {
+i8 sh_check_file_changed(char *filename, FILETIME *last_write_time, FILETIME *last_write_time_out) {
 	WIN32_FILE_ATTRIBUTE_DATA file_attrib;
-	bool success = GetFileAttributesExA(filename, GetFileExInfoStandard, &file_attrib);
+	i8 success = GetFileAttributesExA(filename, GetFileExInfoStandard, &file_attrib);
 	/* i32 last_error = GetLastError(); */
 	
-	bool result = 0;
+	i8 result = 0;
 	if(CompareFileTime(last_write_time, &file_attrib.ftLastWriteTime) == -1) {
 		result = 1;
 	}
