@@ -1,166 +1,519 @@
-// #include <libloaderapi.h>
 #define VK_NO_PROTOTYPES
-#include <vulkan/vulkan_core.h>
 #include <vulkan/vulkan.h>
+#include "vulkan_enum_strings.c"
+#include "vulkan_extensions_to_enable.h"
 
+#define LOAD_VK 1
 
-char *VK_DEVICE_TYPE_NAMES[] = {
-	[VK_PHYSICAL_DEVICE_TYPE_OTHER] = "Other",
-	[VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU] = "iGPU",
-	[VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU] = "dGPU",
-	[VK_PHYSICAL_DEVICE_TYPE_VIRTUAL_GPU] = "vGPU",
-	[VK_PHYSICAL_DEVICE_TYPE_CPU] = "CPU",
-};
+#define CHECK_VK_RESULT(func_call) {\
+	VkResult r = func_call;\
+	if(r != VK_SUCCESS) {\
+		printf("Vulkan call %s failed @%d\n", #func_call, __LINE__);\
+	}\
+}
 
+#define CHECK_VK_RESULT_MSG(func_call, msg) {\
+	VkResult r = func_call;\
+	if(r != VK_SUCCESS) {\
+		printf("Vulkan call %s failed @%d : %s\n", #func_call, __LINE__, msg);\
+	}\
+}
 
-#define ADD_PHYSICAL_DEVICE_FEATURE_NAME(name) [offsetof(VkPhysicalDeviceFeatures, name)/4] = #name
+#if LOAD_VK
 
-char *VK_DEVICE_FEATURE_NAMES[] = {
-    ADD_PHYSICAL_DEVICE_FEATURE_NAME(robustBufferAccess),
-    ADD_PHYSICAL_DEVICE_FEATURE_NAME(fullDrawIndexUint32),
-    ADD_PHYSICAL_DEVICE_FEATURE_NAME(imageCubeArray),
-    ADD_PHYSICAL_DEVICE_FEATURE_NAME(independentBlend),
-    ADD_PHYSICAL_DEVICE_FEATURE_NAME(geometryShader),
-    ADD_PHYSICAL_DEVICE_FEATURE_NAME(tessellationShader),
-    ADD_PHYSICAL_DEVICE_FEATURE_NAME(sampleRateShading),
-    ADD_PHYSICAL_DEVICE_FEATURE_NAME(dualSrcBlend),
-    ADD_PHYSICAL_DEVICE_FEATURE_NAME(logicOp),
-    ADD_PHYSICAL_DEVICE_FEATURE_NAME(multiDrawIndirect),
-    ADD_PHYSICAL_DEVICE_FEATURE_NAME(drawIndirectFirstInstance),
-    ADD_PHYSICAL_DEVICE_FEATURE_NAME(depthClamp),
-    ADD_PHYSICAL_DEVICE_FEATURE_NAME(depthBiasClamp),
-    ADD_PHYSICAL_DEVICE_FEATURE_NAME(fillModeNonSolid),
-    ADD_PHYSICAL_DEVICE_FEATURE_NAME(depthBounds),
-    ADD_PHYSICAL_DEVICE_FEATURE_NAME(wideLines),
-    ADD_PHYSICAL_DEVICE_FEATURE_NAME(largePoints),
-    ADD_PHYSICAL_DEVICE_FEATURE_NAME(alphaToOne),
-    ADD_PHYSICAL_DEVICE_FEATURE_NAME(multiViewport),
-    ADD_PHYSICAL_DEVICE_FEATURE_NAME(samplerAnisotropy),
-    ADD_PHYSICAL_DEVICE_FEATURE_NAME(textureCompressionETC2),
-    ADD_PHYSICAL_DEVICE_FEATURE_NAME(textureCompressionASTC_LDR),
-    ADD_PHYSICAL_DEVICE_FEATURE_NAME(textureCompressionBC),
-    ADD_PHYSICAL_DEVICE_FEATURE_NAME(occlusionQueryPrecise),
-    ADD_PHYSICAL_DEVICE_FEATURE_NAME(pipelineStatisticsQuery),
-    ADD_PHYSICAL_DEVICE_FEATURE_NAME(vertexPipelineStoresAndAtomics),
-    ADD_PHYSICAL_DEVICE_FEATURE_NAME(fragmentStoresAndAtomics),
-    ADD_PHYSICAL_DEVICE_FEATURE_NAME(shaderTessellationAndGeometryPointSize),
-    ADD_PHYSICAL_DEVICE_FEATURE_NAME(shaderImageGatherExtended),
-    ADD_PHYSICAL_DEVICE_FEATURE_NAME(shaderStorageImageExtendedFormats),
-    ADD_PHYSICAL_DEVICE_FEATURE_NAME(shaderStorageImageMultisample),
-    ADD_PHYSICAL_DEVICE_FEATURE_NAME(shaderStorageImageReadWithoutFormat),
-    ADD_PHYSICAL_DEVICE_FEATURE_NAME(shaderStorageImageWriteWithoutFormat),
-    ADD_PHYSICAL_DEVICE_FEATURE_NAME(shaderUniformBufferArrayDynamicIndexing),
-    ADD_PHYSICAL_DEVICE_FEATURE_NAME(shaderSampledImageArrayDynamicIndexing),
-    ADD_PHYSICAL_DEVICE_FEATURE_NAME(shaderStorageBufferArrayDynamicIndexing),
-    ADD_PHYSICAL_DEVICE_FEATURE_NAME(shaderStorageImageArrayDynamicIndexing),
-    ADD_PHYSICAL_DEVICE_FEATURE_NAME(shaderClipDistance),
-    ADD_PHYSICAL_DEVICE_FEATURE_NAME(shaderCullDistance),
-    ADD_PHYSICAL_DEVICE_FEATURE_NAME(shaderFloat64),
-    ADD_PHYSICAL_DEVICE_FEATURE_NAME(shaderInt64),
-    ADD_PHYSICAL_DEVICE_FEATURE_NAME(shaderInt16),
-    ADD_PHYSICAL_DEVICE_FEATURE_NAME(shaderResourceResidency),
-    ADD_PHYSICAL_DEVICE_FEATURE_NAME(shaderResourceMinLod),
-    ADD_PHYSICAL_DEVICE_FEATURE_NAME(sparseBinding),
-    ADD_PHYSICAL_DEVICE_FEATURE_NAME(sparseResidencyBuffer),
-    ADD_PHYSICAL_DEVICE_FEATURE_NAME(sparseResidencyImage2D),
-    ADD_PHYSICAL_DEVICE_FEATURE_NAME(sparseResidencyImage3D),
-    ADD_PHYSICAL_DEVICE_FEATURE_NAME(sparseResidency2Samples),
-    ADD_PHYSICAL_DEVICE_FEATURE_NAME(sparseResidency4Samples),
-    ADD_PHYSICAL_DEVICE_FEATURE_NAME(sparseResidency8Samples),
-    ADD_PHYSICAL_DEVICE_FEATURE_NAME(sparseResidency16Samples),
-    ADD_PHYSICAL_DEVICE_FEATURE_NAME(sparseResidencyAliased),
-    ADD_PHYSICAL_DEVICE_FEATURE_NAME(variableMultisampleRate),
-    ADD_PHYSICAL_DEVICE_FEATURE_NAME(inheritedQueries),
-};
+#define SH_VK_FUNC(name) PFN_##name name
+#define SH_LOAD_VK_GET_INST_PROC_ADDR(name) name = (PFN_##name)GetProcAddress(vulkan_lib, #name);\
+		if(name == NULL) { printf("Coudln't load function: %s. [%s - %d]", #name, __FILE__, __LINE__); exit(1); }
 
-#undef ADD_PHYSICAL_DEVICE_FEATURE_NAME
+#else
 
+#define SH_VK_FUNC(name)
+#define SH_LOAD_VK_GET_INST_PROC_ADDR(name)
+#define SH_FUNC_LOAD_IN(name)
+#define SH_FUNC_LOAD_DEV(name)
 
-#define ADD_QUEUE_FAMILY_FLAG(name) [name] = #name
-
-
-const char* const VK_QUEUE_FAMILY_FLAG_NAMES[] = {
-
-	ADD_QUEUE_FAMILY_FLAG(VK_QUEUE_GRAPHICS_BIT),
-	ADD_QUEUE_FAMILY_FLAG(VK_QUEUE_COMPUTE_BIT),
-	ADD_QUEUE_FAMILY_FLAG(VK_QUEUE_TRANSFER_BIT),
-	ADD_QUEUE_FAMILY_FLAG(VK_QUEUE_SPARSE_BINDING_BIT),
-	ADD_QUEUE_FAMILY_FLAG(VK_QUEUE_PROTECTED_BIT),
-#ifdef VK_ENABLE_BETA_EXTENSIONS
-	ADD_QUEUE_FAMILY_FLAG(VK_QUEUE_VIDEO_DECODE_BIT_KHR),
-#endif
-#ifdef VK_ENABLE_BETA_EXTENSIONS
-	ADD_QUEUE_FAMILY_FLAG(VK_QUEUE_VIDEO_ENCODE_BIT_KHR),
 #endif
 
-};
+
+SH_VK_FUNC(vkGetInstanceProcAddr);
+SH_VK_FUNC(vkGetDeviceProcAddr);
+
+SH_VK_FUNC(vkEnumerateInstanceVersion);
+SH_VK_FUNC(vkCreateInstance);
+SH_VK_FUNC(vkDestroyInstance);
+SH_VK_FUNC(vkEnumerateInstanceExtensionProperties);
+SH_VK_FUNC(vkEnumerateInstanceLayerProperties);
+
+SH_VK_FUNC(vkEnumeratePhysicalDevices);
+SH_VK_FUNC(vkEnumerateDeviceExtensionProperties);
+SH_VK_FUNC(vkCreateDevice);
+SH_VK_FUNC(vkDestroyDevice);
+SH_VK_FUNC(vkGetPhysicalDeviceFeatures);
+SH_VK_FUNC(vkGetPhysicalDeviceFeatures2);
+SH_VK_FUNC(vkGetPhysicalDeviceProperties);
+SH_VK_FUNC(vkGetPhysicalDeviceProperties2);
+
+SH_VK_FUNC(vkGetPhysicalDeviceQueueFamilyProperties);
+SH_VK_FUNC(vkGetPhysicalDeviceQueueFamilyProperties2);
+SH_VK_FUNC(vkGetDeviceQueue);
+
+SH_VK_FUNC(vkCreateDebugUtilsMessengerEXT);
+SH_VK_FUNC(vkDestroyDebugUtilsMessengerEXT);
+
+SH_VK_FUNC(vkGetPhysicalDeviceMemoryProperties2);
+SH_VK_FUNC(vkGetDeviceQueue2);
+
+SH_VK_FUNC(vkCreateWin32SurfaceKHR);
+SH_VK_FUNC(vkGetPhysicalDeviceWin32PresentationSupportKHR);
+SH_VK_FUNC(vkDestroySurfaceKHR);
+
+SH_VK_FUNC(vkGetPhysicalDeviceSurfaceCapabilitiesKHR);
+SH_VK_FUNC(vkGetPhysicalDeviceSurfaceCapabilities2KHR);
+SH_VK_FUNC(vkGetPhysicalDeviceSurfaceFormatsKHR);
+SH_VK_FUNC(vkGetPhysicalDeviceSurfaceFormats2KHR);
+SH_VK_FUNC(vkGetPhysicalDeviceSurfacePresentModesKHR);
+SH_VK_FUNC(vkGetPhysicalDeviceSurfaceSupportKHR);
+SH_VK_FUNC(vkGetPhysicalDeviceSurfacePresentModes2EXT);
 
 
-#define GET_TYPE_NAME(type) VK_DEVICE_TYPE_NAMES[type]
-#define GET_FEATURE_NAME(feature) VK_DEVICE_FEATURE_NAMES[feature]
-#define GET_QUEUE_FLAG_NAME(flag) VK_QUEUE_FAMILY_FLAG_NAMES[flag]
+SH_VK_FUNC(vkAcquireNextImageKHR);
+SH_VK_FUNC(vkCreateSwapchainKHR);
+SH_VK_FUNC(vkDestroySwapchainKHR);
+SH_VK_FUNC(vkGetSwapchainImagesKHR);
+SH_VK_FUNC(vkQueuePresentKHR);
 
-#define SH_VK_FUNC_NAME(name) PFN_##name name
-#define SH_LOAD_VK_GET_INST_PROC_ADDR(name) name = (PFN_##name)GetProcAddress(vulkan_lib, #name)
-#define SH_FUNC_LOAD_GL(name) name = (PFN_##name)vkGetInstanceProcAddr(NULL, #name)
-#define SH_FUNC_LOAD_IN(name) name = (PFN_##name)vkGetInstanceProcAddr(*(inst), #name)
-#define SH_FUNC_LOAD_DEV(name) name = (PFN_##name)vkGetDeviceProcAddr(*(dev), #name)
-										   
+SH_VK_FUNC(vkAcquireNextImage2KHR);
+SH_VK_FUNC(vkGetDeviceGroupPresentCapabilitiesKHR);
+SH_VK_FUNC(vkGetDeviceGroupSurfacePresentModesKHR);
+SH_VK_FUNC(vkGetPhysicalDevicePresentRectanglesKHR);
+
+SH_VK_FUNC(vkEnumeratePhysicalDeviceGroups);
+
+SH_VK_FUNC(vkCreateImageView);
+SH_VK_FUNC(vkDestroyImageView);
+
+SH_VK_FUNC(vkCreateShaderModule);
+SH_VK_FUNC(vkDestroyShaderModule);
+
+SH_VK_FUNC(vkCreatePipelineLayout);
+
+#undef SH_VK_FUNC
 
 
+typedef struct sh_vulkan_pdevice {
+	VkPhysicalDeviceType type;
+	VkPhysicalDevice device;
+	VkPhysicalDeviceFeatures2 *features;
+	VkPhysicalDeviceProperties2 *properties;
+	VkDevice ldevice;
+	VkQueueFamilyProperties2 *queue_properties;
+} sh_vulkan_pdevice;
 
-SH_VK_FUNC_NAME(vkGetInstanceProcAddr);
-SH_VK_FUNC_NAME(vkGetDeviceProcAddr);
 
-SH_VK_FUNC_NAME(vkEnumerateInstanceVersion);
-SH_VK_FUNC_NAME(vkCreateInstance);
-SH_VK_FUNC_NAME(vkEnumerateInstanceExtensionProperties);
-SH_VK_FUNC_NAME(vkEnumerateDeviceExtensionProperties);
-SH_VK_FUNC_NAME(vkEnumerateInstanceLayerProperties);
-SH_VK_FUNC_NAME(vkGetPhysicalDeviceProperties);
-SH_VK_FUNC_NAME(vkEnumeratePhysicalDevices);
-SH_VK_FUNC_NAME(vkCreateDevice);
+typedef struct sh_vk_shader_module {
+	VkShaderModule shader_module;
+	glslang_stage_t stage;
+} sh_vk_shader_module;
 
-SH_VK_FUNC_NAME(vkGetPhysicalDeviceFeatures);
-SH_VK_FUNC_NAME(vkGetPhysicalDeviceQueueFamilyProperties);
-SH_VK_FUNC_NAME(vkGetDeviceQueue);
+typedef struct sh_vulkan_context_t {
+	sh_vulkan_pdevice device_info;
+	VkInstance instance;
+	VkDebugUtilsMessengerEXT debug_msgr;
+	i32 queue_family_selected;
+	const char** layers_enabled;
+	const char** extensions_enabled;
+	const char** pdevice_extensions_enabled;
+	VkSurfaceKHR surface;
+	VkSwapchainKHR swapchain;
+	VkImageView *img_views;
+	sh_vk_shader_module *shader_modules;
+} sh_vulkan_context_t;
 
+typedef struct sh_vk_spirv_shader_t {
+	u32 *data;	
+	u64 size;
+} sh_vk_spirv_shader_t;
 
 void load_vulkan_funcs(void) {
 	HMODULE vulkan_lib = LoadLibrary("vulkan-1.dll");
+	// printf("%p\n", vulkan_lib);
 
 	SH_LOAD_VK_GET_INST_PROC_ADDR(vkGetInstanceProcAddr);
 	SH_LOAD_VK_GET_INST_PROC_ADDR(vkGetDeviceProcAddr);
 
-	SH_FUNC_LOAD_GL(vkCreateInstance);
-	SH_FUNC_LOAD_GL(vkEnumerateInstanceExtensionProperties);
-	SH_FUNC_LOAD_GL(vkEnumerateInstanceLayerProperties);
-	SH_FUNC_LOAD_GL(vkEnumerateInstanceVersion);
+#define SH_VK_FUNC(name) name = (PFN_##name)vkGetInstanceProcAddr(NULL, #name);\
+		if(name == NULL) { printf("Coudln't load vulkan global function: %s. [%s - %d]", #name, __FILE__, __LINE__); exit(1); }
 
-	assert(vkCreateInstance != NULL);
-	
+
+	SH_VK_FUNC(vkCreateInstance);
+	SH_VK_FUNC(vkEnumerateInstanceExtensionProperties);
+	SH_VK_FUNC(vkEnumerateInstanceLayerProperties);
+	SH_VK_FUNC(vkEnumerateInstanceVersion);
+
+#undef SH_VK_FUNC
+
 }
 
 
 void load_vulkan_instance_funcs(VkInstance *inst) {
-	SH_FUNC_LOAD_IN(vkEnumeratePhysicalDevices);
-	SH_FUNC_LOAD_IN(vkGetPhysicalDeviceProperties);
-	SH_FUNC_LOAD_IN(vkGetPhysicalDeviceFeatures);
-	SH_FUNC_LOAD_IN(vkGetPhysicalDeviceQueueFamilyProperties);
-	SH_FUNC_LOAD_IN(vkCreateDevice);
-	SH_FUNC_LOAD_IN(vkEnumerateDeviceExtensionProperties);
+
+#define SH_VK_FUNC(name) name = (PFN_##name)vkGetInstanceProcAddr(*(inst), #name);\
+	if(name == NULL) { printf("Coudln't load vulkan instance function: %s. [%s - %d]", #name, __FILE__, __LINE__); exit(1); }
+
+
+	SH_VK_FUNC(vkEnumeratePhysicalDevices);
+	SH_VK_FUNC(vkGetPhysicalDeviceProperties);
+	SH_VK_FUNC(vkGetPhysicalDeviceProperties2);
+	SH_VK_FUNC(vkGetPhysicalDeviceFeatures);
+	SH_VK_FUNC(vkGetPhysicalDeviceFeatures2);
+
+	SH_VK_FUNC(vkDestroyInstance);
+
+	SH_VK_FUNC(vkCreateDevice);
+	SH_VK_FUNC(vkDestroyDevice);
+	SH_VK_FUNC(vkEnumerateDeviceExtensionProperties);
+
+	SH_VK_FUNC(vkCreateDebugUtilsMessengerEXT);
+	SH_VK_FUNC(vkDestroyDebugUtilsMessengerEXT);
+
+	SH_VK_FUNC(vkGetPhysicalDeviceQueueFamilyProperties);
+	SH_VK_FUNC(vkGetPhysicalDeviceQueueFamilyProperties2);
+
+	SH_VK_FUNC(vkGetPhysicalDeviceMemoryProperties2);
+
+	SH_VK_FUNC(vkCreateWin32SurfaceKHR);
+	SH_VK_FUNC(vkGetPhysicalDeviceWin32PresentationSupportKHR);
+	SH_VK_FUNC(vkDestroySurfaceKHR);
+
+	SH_VK_FUNC(vkGetPhysicalDeviceSurfaceCapabilitiesKHR);
+	SH_VK_FUNC(vkGetPhysicalDeviceSurfaceCapabilities2KHR);
+	SH_VK_FUNC(vkGetPhysicalDeviceSurfaceFormatsKHR);
+	SH_VK_FUNC(vkGetPhysicalDeviceSurfaceFormats2KHR);
+	SH_VK_FUNC(vkGetPhysicalDeviceSurfacePresentModesKHR);
+	SH_VK_FUNC(vkGetPhysicalDeviceSurfacePresentModes2EXT);
+	SH_VK_FUNC(vkGetPhysicalDeviceSurfaceSupportKHR);
+	SH_VK_FUNC(vkGetPhysicalDevicePresentRectanglesKHR);
+
+	SH_VK_FUNC(vkEnumeratePhysicalDeviceGroups);
+
+
+#undef SH_VK_FUNC
+
 }
 
 void load_vulkan_device_funcs(VkDevice *dev) {
-	SH_FUNC_LOAD_DEV(vkGetDeviceQueue);
+#define SH_VK_FUNC(name) name = (PFN_##name)vkGetDeviceProcAddr(*(dev), #name);\
+		if(name == NULL) { printf("Coudln't load vulkan device function: %s. [%s - %d]", #name, __FILE__, __LINE__); exit(1); }
+
+	SH_VK_FUNC(vkGetDeviceQueue);
+	SH_VK_FUNC(vkGetDeviceQueue2);
+	SH_VK_FUNC(vkDestroyDevice);
+
+	SH_VK_FUNC(vkAcquireNextImageKHR);
+	SH_VK_FUNC(vkCreateSwapchainKHR);
+	SH_VK_FUNC(vkDestroySwapchainKHR);
+	SH_VK_FUNC(vkGetSwapchainImagesKHR);
+	SH_VK_FUNC(vkQueuePresentKHR);
+
+	SH_VK_FUNC(vkAcquireNextImage2KHR);
+	SH_VK_FUNC(vkGetDeviceGroupPresentCapabilitiesKHR);
+	SH_VK_FUNC(vkGetDeviceGroupSurfacePresentModesKHR);
+
+	SH_VK_FUNC(vkCreateImageView);
+	SH_VK_FUNC(vkDestroyImageView);
+
+	SH_VK_FUNC(vkCreateShaderModule);
+	SH_VK_FUNC(vkDestroyShaderModule);
+
+	SH_VK_FUNC(vkCreatePipelineLayout);
+#undef SH_VK_FUNC
+
 }
 
 
-void sh_print_queue_family_flags(VkQueueFlagBits flags) {
-	printf("Flags:\n");
-	printf("\t%-27s = %d\n", GET_QUEUE_FLAG_NAME(VK_QUEUE_GRAPHICS_BIT), (flags & VK_QUEUE_GRAPHICS_BIT) > 0);
-	printf("\t%-27s = %d\n", GET_QUEUE_FLAG_NAME(VK_QUEUE_COMPUTE_BIT), (flags & VK_QUEUE_COMPUTE_BIT) > 0);
-	printf("\t%-27s = %d\n", GET_QUEUE_FLAG_NAME(VK_QUEUE_TRANSFER_BIT), (flags & VK_QUEUE_TRANSFER_BIT) > 0);
-	printf("\t%-27s = %d\n", GET_QUEUE_FLAG_NAME(VK_QUEUE_SPARSE_BINDING_BIT), (flags & VK_QUEUE_SPARSE_BINDING_BIT) > 0);
-	printf("\t%-27s = %d\n", GET_QUEUE_FLAG_NAME(VK_QUEUE_PROTECTED_BIT), (flags & VK_QUEUE_PROTECTED_BIT) > 0);
+
+
+char** check_layers(void) {
+	char** names = NULL;
+
+	if(ARRAY_SIZE(gl_layers_to_enable) == 1 && gl_layers_to_enable[0] == NULL) { return NULL;}
+
+#if ENABLE_LAYERS
+	u32 c = 0;
+	CHECK_VK_RESULT(vkEnumerateInstanceLayerProperties(&c, NULL));
+
+	VkLayerProperties *p = (VkLayerProperties*) malloc(sizeof(VkLayerProperties)*c);
+	vkEnumerateInstanceLayerProperties(&c, p);
+
+	buf_fit(names, c);
+
+	for(u32 i = 0; i < c; i++) {
+		// printf("%s\n", p[i].layerName);
+		for(i32 j = 0; j < ARRAY_SIZE(gl_layers_to_enable); j++) {
+			if(strcmp(p[i].layerName, gl_layers_to_enable[j]) == 0) {
+				buf_push(names, gl_layers_to_enable[j]);
+			}
+		}
+	}
+
+	if(buf_len(names) != ARRAY_SIZE(gl_layers_to_enable)) {
+		printf("These layers were not found\n");
+
+		i32 found = 0;
+		for(i32 i = 0; i < ARRAY_SIZE(gl_layers_to_enable); i++) {
+			found = 0;
+			for(u32 j = 0; j < buf_len(names); j++) {
+				if(strcmp(names[j], gl_layers_to_enable[i]) == 0) {
+					found = 1;
+					break;
+				}
+			}
+
+			if(found == 0) {
+				printf("%s\n", gl_layers_to_enable[i]);
+			}
+		}
+
+	}
+
+
+	free(p);
+#endif 
+	return names;
 }
+
+
+const char** check_instance_extensions(void) {
+
+	char** names = NULL;
+
+
+	if(ARRAY_SIZE(gl_instance_extensions_to_enable) == 1 &&
+			gl_instance_extensions_to_enable[0] == NULL)
+	{ return NULL;}
+
+#if ENABLE_EXTENSIONS
+
+	u32 c = 0;
+	CHECK_VK_RESULT(vkEnumerateInstanceExtensionProperties(NULL, &c, NULL));
+	VkExtensionProperties *p = (VkExtensionProperties*) malloc(sizeof(VkExtensionProperties)*c);
+	CHECK_VK_RESULT(vkEnumerateInstanceExtensionProperties(NULL, &c, p));
+
+
+	buf_fit(names, c);
+
+	for(u32 i = 0; i < c; i++) {
+		// printf("%s\n", p[i].extensionName);
+		for(i32 j = 0; j < ARRAY_SIZE(gl_instance_extensions_to_enable); j++) {
+			if(strcmp(p[i].extensionName, gl_instance_extensions_to_enable[j]) == 0) {
+				buf_push(names, gl_instance_extensions_to_enable[j]);
+			}
+		}
+	}
+
+	if(buf_len(names) != ARRAY_SIZE(gl_instance_extensions_to_enable)) {
+		printf("These extensions were not found\n");
+		i32 found = 0;
+		for(i32 i = 0; i < ARRAY_SIZE(gl_instance_extensions_to_enable); i++) {
+			found = 0;
+			for(u32 j = 0; j < buf_len(names); j++) {
+				if(strcmp(names[j], gl_instance_extensions_to_enable[i]) == 0) {
+					found = 1;
+					break;
+				}
+			}
+			if(found == 0) { printf("%s\n", gl_instance_extensions_to_enable[i]); }
+		}
+	}
+
+
+	free(p);
+
+#endif
+	return names;
+}
+
+
+void check_physical_devices(sh_vulkan_context_t *vk_ctx) {
+
+	VkPhysicalDevice *devices = NULL;
+	u32 count = 0;
+	CHECK_VK_RESULT_MSG(
+			vkEnumeratePhysicalDevices(vk_ctx->instance, &count, NULL),
+			"Couldn't Enumerate devices"
+	);
+
+	devices = (VkPhysicalDevice*)malloc(sizeof(devices)*count);
+
+	CHECK_VK_RESULT_MSG(
+			vkEnumeratePhysicalDevices( vk_ctx->instance, &count, devices),
+			"Couldn't get physical devices"
+	);
+
+	VkPhysicalDeviceProperties2 *p = (VkPhysicalDeviceProperties2*) calloc(1, sizeof(VkPhysicalDeviceProperties2));
+
+	p->sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2;
+
+	printf("We found %d devices.\n", count);
+
+	VkPhysicalDevice selected_device = VK_NULL_HANDLE;
+	VkPhysicalDeviceType selected_device_type = 0;
+
+	//TODO(sharo): could use a better approach to select a device
+	for(i32 i = 0; i < (i32)count; i++) {
+		vkGetPhysicalDeviceProperties2(devices[i], p);
+		printf("\t");
+		sh_print_pdevice_info(p);
+
+		// As long as we have a discrete gpu, select that
+		if(p->properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU) {
+			selected_device = devices[i];
+			selected_device_type = VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU;
+		}
+	}
+
+	//if no discrete GPUs see if there is an integrated one
+	if(selected_device == VK_NULL_HANDLE) {
+		for(i32 i = 0; i < (i32)count; i++) {
+			// As long as we have a discrete gpu, select that
+			if(p->properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU) {
+				selected_device = devices[i];
+				selected_device_type = VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU;
+			}
+		}
+	}
+
+
+	if(selected_device != VK_NULL_HANDLE) {
+
+		printf("Selected Device: \n\t");
+
+		vk_ctx->device_info.device = selected_device;
+		vk_ctx->device_info.type = selected_device_type;
+
+		vkGetPhysicalDeviceProperties2(vk_ctx->device_info.device, p);
+		sh_print_pdevice_info(p);
+		vk_ctx->device_info.properties = p;
+
+		VkPhysicalDeviceFeatures2 *feat = (VkPhysicalDeviceFeatures2 *)calloc(1, sizeof(VkPhysicalDeviceFeatures2));
+		feat->sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
+		vkGetPhysicalDeviceFeatures2(vk_ctx->device_info.device, feat);
+		vk_ctx->device_info.features = feat;
+
+		// print_pdevice_feature(&feat);
+	}
+
+	free(devices);
+}
+
+const char** check_pdevice_extensions(sh_vulkan_pdevice *dev) {
+
+	char **names = NULL;
+
+	if(
+			ARRAY_SIZE(gl_physical_device_extensions_to_enable) == 1 &&
+			gl_physical_device_extensions_to_enable[0] == NULL) {
+		return NULL;
+	}
+
+#if ENABLE_PDEVICE_EXTENSIONS
+
+	u32 c = 0;
+	CHECK_VK_RESULT( vkEnumerateDeviceExtensionProperties(dev->device, NULL, &c, NULL) );
+	VkExtensionProperties *p = (VkExtensionProperties*) malloc(sizeof(VkExtensionProperties)*c);
+	CHECK_VK_RESULT(vkEnumerateDeviceExtensionProperties(dev->device, NULL, &c, p));
+
+	buf_fit(names, c);
+
+	for(u32 i = 0; i < c; i++) {
+		// printf("%s\n", p[i].extensionName);
+		for(i32 j = 0; j < ARRAY_SIZE(gl_physical_device_extensions_to_enable); j++) {
+			if(strcmp(p[i].extensionName, gl_physical_device_extensions_to_enable[j]) == 0) {
+				buf_push(names, gl_physical_device_extensions_to_enable[j]);
+			}
+		}
+	}
+
+	if(buf_len(names) != ARRAY_SIZE(gl_physical_device_extensions_to_enable)) {
+
+		printf("These physical device extensions were not found\n");
+
+		i32 found = 0;
+		for(i32 i = 0; i < ARRAY_SIZE(gl_physical_device_extensions_to_enable); i++) {
+			found = 0;
+			for(u32 j = 0; j < buf_len(names); j++) {
+				if(strcmp(names[j], gl_physical_device_extensions_to_enable[i]) == 0) {
+					found = 1;
+					break;
+				}
+			}
+			if(found == 0) { printf("%s\n", gl_physical_device_extensions_to_enable[i]); }
+		}
+	}
+
+
+	free(p);
+
+#endif
+
+	return names;
+}
+
+
+void check_pdevice_qfamily_features(sh_vulkan_context_t *vk_ctx, VkQueueFlagBits flags_wanted) {
+	
+	sh_vulkan_pdevice *pdev = &vk_ctx->device_info;
+
+	u32 count = 0;
+	vkGetPhysicalDeviceQueueFamilyProperties2(pdev->device, &count, NULL);
+	pdev->queue_properties = (VkQueueFamilyProperties2*) calloc(count, sizeof(VkQueueFamilyProperties2));
+
+	for(u32 i = 0; i < count; i++) {
+		pdev->queue_properties[i].sType = VK_STRUCTURE_TYPE_QUEUE_FAMILY_PROPERTIES_2;
+	}
+
+	vkGetPhysicalDeviceQueueFamilyProperties2(pdev->device, &count, pdev->queue_properties);
+
+	i32 selected_queue_family_index = -1;
+
+	for(u32 i = 0; i < count; i++) {
+		u32 qcount =  pdev->queue_properties[i].queueFamilyProperties.queueCount;
+		VkQueueFlagBits flags = pdev->queue_properties[i].queueFamilyProperties.queueFlags;
+		// printf("Queue Count: %d\n", pdev->queue_properties[i].queueFamilyProperties.queueCount);
+		// sh_print_queue_family_flags(flags);
+
+		if((( flags & flags_wanted) == flags_wanted) && qcount > 1) {
+			selected_queue_family_index = i;
+
+		}
+	}
+
+	if(selected_queue_family_index != -1) {
+		printf("We have selected the queue family index %d: \n", selected_queue_family_index);
+
+		u32 qcount =  pdev->queue_properties[selected_queue_family_index].queueFamilyProperties.queueCount;
+		VkQueueFlagBits flags = pdev->queue_properties[selected_queue_family_index].queueFamilyProperties.queueFlags;
+		printf("\tQueue Count: %d\n",
+				pdev->queue_properties[selected_queue_family_index].queueFamilyProperties.queueCount
+				);
+		sh_print_queue_family_flags(flags);
+
+		vk_ctx->queue_family_selected = selected_queue_family_index;
+
+	}
+
+	// return -1;
+}
+
+
+void check_pdevice_memory(sh_vulkan_pdevice *dev) {
+	VkPhysicalDeviceMemoryProperties2 device_mem = {
+		.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MEMORY_PROPERTIES_2
+	};
+	vkGetPhysicalDeviceMemoryProperties2(dev->device, &device_mem);
+	if(&device_mem != VK_NULL_HANDLE) {
+		sh_print_pdevice_memory_properties(&device_mem.memoryProperties);
+	}
+}
+
+

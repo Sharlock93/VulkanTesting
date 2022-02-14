@@ -3,7 +3,7 @@ nnoremap <A-m> :AsyncRun build.bat<cr>
 nnoremap <A-p> :AsyncStop<cr>
 nnoremap <A-r> :AsyncRun run.bat<cr>
 nnoremap <F7> :cn<cr>
-set guifont=JetBrains\ Mono:h11
+set guifont=JetBrains\ Mono:h12
 
 nnoremap gd :YcmCompleter GoTo<CR>
 

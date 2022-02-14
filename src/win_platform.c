@@ -47,6 +47,7 @@ typedef struct sh_window_context_t {
 	sh_key_button_t *keyboard;
 	char *window_name;
 	i8 should_close;
+	HWND handle;
 } sh_window_context_t;
 
 
@@ -136,9 +137,9 @@ HWND sh_create_window(sh_window_context_t *gl_ctx, WNDPROC proc) {
 
 	i32 style = WS_OVERLAPPEDWINDOW;
 	RECT win_size = {
-		.left = gl_ctx->x,
+		.left = 0,
 		.right = gl_ctx->width,
-		.top = gl_ctx->y,
+		.top = 0,
 		.bottom = gl_ctx->height
 	};
 
@@ -148,8 +149,8 @@ HWND sh_create_window(sh_window_context_t *gl_ctx, WNDPROC proc) {
 			"sh_window",
 			gl_ctx->window_name,
 			WS_VISIBLE | style,
-			win_size.left,
-			win_size.top,
+			gl_ctx->x,
+			gl_ctx->y,
 			win_size.right - win_size.left,
 			win_size.bottom - win_size.top,
 			NULL,
@@ -159,6 +160,7 @@ HWND sh_create_window(sh_window_context_t *gl_ctx, WNDPROC proc) {
 			);
 
 
+	gl_ctx->handle = wn;
 	sh_init_time(&gl_ctx->time);
 	sh_init_mouse(&gl_ctx->mouse);
 	sh_init_keyboard(&gl_ctx->keyboard);

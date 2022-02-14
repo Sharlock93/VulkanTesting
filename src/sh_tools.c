@@ -16,8 +16,8 @@ typedef float  f32;
 typedef double f64;
 
 typedef struct bhdr {
-	int size;
-	int cap;
+	u32 size;
+	u32 cap;
 } bhdr;
 
 #define buf__hdr(b) ((bhdr*)(((int*)b) - 2))
@@ -78,7 +78,7 @@ i8 sh_check_file_changed(char *filename, FILETIME *last_write_time, FILETIME *la
 	return result && success;
 }
 
-char* read_file(const char *filename, size_t *size) {
+char* sh_read_file(const char *filename, size_t *size) {
 	DWORD cur_size = 0;
 
 	HANDLE file = CreateFile(
@@ -107,7 +107,7 @@ char* read_file(const char *filename, size_t *size) {
 	return mem;
 }
 
-void write_file(const char *filename, char *to_write, i32 to_write_bytes) {
+void sh_write_file(const char *filename, char *to_write, i32 to_write_bytes) {
 
 	HANDLE file = CreateFile(
 			filename,
@@ -146,5 +146,6 @@ void _assert_exit(i32 assert_condition, i32 line_number, const char *file, const
 
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
+#define ARRAY_SIZE(arr) ( (arr) ? sizeof((arr))/sizeof((arr)[0]) : 0)
 
 #endif

@@ -1,0 +1,7 @@
+﻿  main.c
+S:\code\projects\vulkan\src\load_vulkan.c(460,2): warning C4090: 'function': different 'const' qualifiers
+S:\code\projects\vulkan\src\load_vulkan.c(466,5): warning C4090: 'function': different 'const' qualifiers
+S:\code\projects\vulkan\src\load_vulkan.c(510,2): warning C4090: 'function': different 'const' qualifiers
+S:\code\projects\vulkan\src\load_vulkan.c(515,5): warning C4090: 'function': different 'const' qualifiers
+S:\code\projects\vulkan\src\load_vulkan.c(558,5): warning C4090: '=': different 'const' qualifiers
+  Vulkan.vcxproj -> S:\code\projects\vulkan\premake_test\build\bin\Debug\Vulkan.exe
