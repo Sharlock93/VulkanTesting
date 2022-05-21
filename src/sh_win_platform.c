@@ -49,6 +49,19 @@ typedef struct sh_window_context_t {
 	sh_mouse_info_t *mouse;
 	sh_time_info_t *time;
 	sh_key_button_t *keyboard;
+
+	sh_key_button_t shift;
+	sh_key_button_t lshift;
+	sh_key_button_t rshift;
+
+	sh_key_button_t ctrl;
+	sh_key_button_t lctrl;
+	sh_key_button_t rctrl;
+
+	sh_key_button_t alt;
+	sh_key_button_t lalt;
+	sh_key_button_t ralt;
+
 	char *window_name;
 	i8 should_close;
 	i8 size_changed;
@@ -216,6 +229,40 @@ void sh_update_keys(sh_window_context_t *ctx) {
 		ctx->keyboard[i].pressed_once = !ctx->keyboard[i].pressed && new_state;
 		ctx->keyboard[i].pressed = new_state;
 	}
+
+	u8 new_state = keys[VK_LSHIFT] >> 7; 
+	ctx->lshift.pressed_once = !ctx->lshift.pressed && new_state;
+	ctx->lshift.pressed = new_state;
+
+	new_state = keys[VK_RSHIFT] >> 7; 
+	ctx->rshift.pressed_once = !ctx->rshift.pressed && new_state;
+	ctx->rshift.pressed = new_state;
+	
+	new_state = keys[VK_LCONTROL] >> 7; 
+	ctx->lctrl.pressed_once = !ctx->lctrl.pressed && new_state;
+	ctx->lctrl.pressed = new_state;
+
+	new_state = keys[VK_RCONTROL] >> 7; 
+	ctx->rctrl.pressed_once = !ctx->rctrl.pressed && new_state;
+	ctx->rctrl.pressed = new_state;
+
+	new_state = keys[VK_LMENU] >> 7; 
+	ctx->ralt.pressed_once = !ctx->ralt.pressed && new_state;
+	ctx->ralt.pressed = new_state;
+
+	new_state = keys[VK_LMENU] >> 7; 
+	ctx->ralt.pressed_once = !ctx->ralt.pressed && new_state;
+	ctx->ralt.pressed = new_state;
+
+	ctx->alt.pressed_once = ctx->lalt.pressed_once || ctx->ralt.pressed_once;
+	ctx->alt.pressed = ctx->lalt.pressed || ctx->ralt.pressed;
+
+	ctx->ctrl.pressed_once = ctx->lctrl.pressed_once || ctx->rctrl.pressed_once;
+	ctx->ctrl.pressed = ctx->lctrl.pressed || ctx->rctrl.pressed;
+
+	ctx->shift.pressed_once = ctx->lshift.pressed_once || ctx->rshift.pressed_once;
+	ctx->shift.pressed = ctx->lshift.pressed || ctx->rshift.pressed;
+
 }
 
 void sh_reset_one_frame_fields(sh_window_context_t *ctx) {

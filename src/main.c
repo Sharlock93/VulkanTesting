@@ -196,7 +196,6 @@ void sh_camera_move_vert(sh_camera *cam, f32 amount) {
 	sh_mat4_translate_vec3(&cam->mat, &translate);
 }
 
-
 void sh_camera_lookat_mouse(sh_camera *cam, f32 x_delta, f32 y_delta) {
 	sh_vec3 right = sh_vec3_cross(&cam->fwd, &cam->up);
 	sh_vec3_normalize_ref(&right);
@@ -669,38 +668,43 @@ int main() {
 
 		while(acc_time >= frame_time) {
 
+			f32 amount = 10.0f;
+
+			if(ctx->shift.pressed) amount = 15.0f;
+			if(ctx->ctrl.pressed) amount = 5.0f;
+
 			if(ctx->keyboard['W'].pressed) {
-				sh_camera_move_fwd(&cam, 10.0f*frame_time);
+				sh_camera_move_fwd(&cam, amount*frame_time);
 				matrices[1] = cam.mat;
 				uniform_change = 1;
 			}
 
 			if(ctx->keyboard['S'].pressed) {
-				sh_camera_move_fwd(&cam, -10.0f*frame_time);
+				sh_camera_move_fwd(&cam, -amount*frame_time);
 				matrices[1] = cam.mat;
 				uniform_change = 1;
 			}
 
 			if(ctx->keyboard['D'].pressed) {
-				sh_camera_move_hor(&cam, 10.0f*frame_time);
+				sh_camera_move_hor(&cam, amount*frame_time);
 				matrices[1] = cam.mat;
 				uniform_change = 1;
 			}
 
 			if(ctx->keyboard['A'].pressed) {
-				sh_camera_move_hor(&cam, -10.0f*frame_time);
+				sh_camera_move_hor(&cam, -amount*frame_time);
 				matrices[1] = cam.mat;
 				uniform_change = 1;
 			}
 
 			if(ctx->keyboard[' '].pressed) {
-				sh_camera_move_vert(&cam, 10.0f*frame_time);
+				sh_camera_move_vert(&cam, amount*frame_time);
 				matrices[1] = cam.mat;
 				uniform_change = 1;
 			}
 
 			if(ctx->keyboard['K'].pressed) {
-				sh_camera_move_vert(&cam, -10.0f*frame_time);
+				sh_camera_move_vert(&cam, -amount*frame_time);
 				matrices[1] = cam.mat;
 				uniform_change = 1;
 			}
