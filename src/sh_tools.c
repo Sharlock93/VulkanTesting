@@ -1,35 +1,7 @@
-#ifndef SH_TOOLS
-#define SH_TOOLS
-#include <stdint.h>
+#include "sh_tools.h"
 
-typedef uint8_t u8;
-typedef uint16_t u16;
-typedef uint32_t u32;
-typedef uint64_t u64;
+sh_log_tracker_t sh_global_log_tracker;
 
-typedef int8_t  i8;
-typedef int16_t i16;
-typedef int32_t i32;
-typedef int64_t i64;
-
-typedef float  f32;
-typedef double f64;
-
-typedef struct bhdr {
-	u32 size;
-	u32 cap;
-} bhdr;
-
-#define buf__hdr(b) ((bhdr*)(((int*)b) - 2))
-
-#define buf_end(b) ((b) + buf_len(b))
-#define buf_len(b) ((b) ? buf__hdr(b)->size: 0)
-#define buf_cap(b) ((b) ? buf__hdr(b)->cap: 0)
-#define buf_fit(b, n) ((n) <= buf_cap(b) ? 0 : ((b) = buf__grow(b, buf_len(b) + (n), sizeof(*(b)))))
-#define buf_push(b, ...) ( buf_fit((b), 1 + buf_len(b)), (b)[buf__hdr(b)->size++] = (__VA_ARGS__))
-#define buf_pop(b)		 ( buf_len(b) ? ((b) + --buf__hdr(b)->size) : NULL )
-#define buf_free(b) ((b) ? (free(buf__hdr(b)), (b) = NULL): 0)
-#define buf_clear(b) ((b) ? buf__hdr(b)->size = 0: 0)
 
 void* buf__grow(void *buf, int items, int item_size) {
 	int new_cap = items + 2*buf_cap(buf);
@@ -44,6 +16,61 @@ void* buf__grow(void *buf, int items, int item_size) {
 
 	nhdr->cap = new_cap;
 	return ((int*)nhdr) + 2;
+}
+
+
+void _log_debug(i8 newline, i8 more, char *fmt, ...) {
+	#define MAX_BUFFER_SIZE 1024*10
+
+	static char temp_buffer[MAX_BUFFER_SIZE];
+	static i32 log_counter = 0;
+
+	i32 buffer_size = MAX_BUFFER_SIZE;
+	char *buffer_to_use = temp_buffer;
+
+	
+	va_list vars;
+	va_start(vars, fmt);
+
+	char *file_location = va_arg(vars, char*);
+	i32 file_line = va_arg(vars, i32);
+	i32 log_bytes_written = 0;
+
+	if(more == 0)
+		log_bytes_written = sprintf_s(buffer_to_use, buffer_size, "%s(%d): ", file_location, file_line);
+	
+	if(log_bytes_written >= buffer_size) {
+		printf("log_debug buffer overloaded, removing going back to zero");
+		log_bytes_written = 0;
+	}
+
+	i32 check_length = _vscprintf(fmt, vars);
+
+	if(check_length > (buffer_size - log_bytes_written - 1)) {
+		buffer_size = check_length + log_bytes_written + 1;
+		buffer_to_use = (char*)calloc(buffer_size, sizeof(char));
+		if(log_bytes_written > 0) {
+			memcpy(buffer_to_use, temp_buffer, log_bytes_written);
+		}
+	}
+
+	vsnprintf_s(buffer_to_use + log_bytes_written, buffer_size - log_bytes_written, check_length, fmt, vars);
+
+	va_end(vars);
+
+	if(newline)
+		puts(buffer_to_use);
+	else
+		printf("%s", buffer_to_use);
+
+	fflush(stdout);
+
+	if(buffer_to_use != temp_buffer)
+		free(buffer_to_use);
+
+	log_counter++;
+
+#undef MAX_BUFFER_SIZE
 }
 
 
@@ -63,7 +90,7 @@ FILETIME sh_get_file_last_write(char *filename) {
 
 i8 sh_check_file_changed(char *filename, FILETIME *last_write_time, FILETIME *last_write_time_out) {
 	WIN32_FILE_ATTRIBUTE_DATA file_attrib;
-	i8 success = GetFileAttributesExA(filename, GetFileExInfoStandard, &file_attrib);
+	BOOL success = GetFileAttributesExA(filename, GetFileExInfoStandard, &file_attrib);
 	/* i32 last_error = GetLastError(); */
 	
 	i8 result = 0;
@@ -86,7 +113,14 @@ char* sh_read_file(const char *filename, size_t *size) {
 			GENERIC_READ, FILE_SHARE_READ, NULL,
 			OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL,
 			NULL);
-	 cur_size = GetFileSize(file, NULL);
+
+
+	if(file == INVALID_HANDLE_VALUE) {
+		log_debugl("Couldn't open file %s", filename);
+		return NULL;
+	}
+
+	cur_size = GetFileSize(file, NULL);
 
 	char* mem = NULL;
 
@@ -107,7 +141,7 @@ char* sh_read_file(const char *filename, size_t *size) {
 	return mem;
 }
 
-void sh_write_file(const char *filename, char *to_write, i32 to_write_bytes) {
+void sh_write_file(const char *filename, char *to_write, u32 to_write_bytes) {
 
 	HANDLE file = CreateFile(
 			filename,
@@ -115,8 +149,6 @@ void sh_write_file(const char *filename, char *to_write, i32 to_write_bytes) {
 			CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL,
 			NULL);
 
-
-	char* mem = NULL;
 
 	DWORD written_bytes = 0;
 	WriteFile(file,to_write, to_write_bytes, &written_bytes, NULL);
@@ -136,16 +168,10 @@ void _assert_exit(i32 assert_condition, i32 line_number, const char *file, const
 	if(!assert_condition) {
 		va_list var_list;
 		va_start(var_list, fmt);
-		printf("\n%s(%d):(%s) ", file, line_number, func);
+		printf("%s(%d): (%s) ", file, line_number, func);
 		vprintf(fmt, var_list);
 		va_end(var_list);
+		fflush(stdout);
 		exit(1);
 	}
 }
-
-
-#define MAX(a, b) ((a) > (b) ? (a) : (b))
-#define MIN(a, b) ((a) < (b) ? (a) : (b))
-#define ARRAY_SIZE(arr) ( (arr) ? sizeof((arr))/sizeof((arr)[0]) : 0)
-
-#endif

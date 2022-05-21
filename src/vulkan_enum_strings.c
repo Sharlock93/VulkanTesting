@@ -1,5 +1,7 @@
-#include "glslang/Include/glslang_c_shader_types.h"
-#include "sh_tools.c"
+#include "glslang/glslang_c_shader_types.h"
+#include "glslang/glslang_c_interface.h"
+#include "sh_tools.h"
+
 #define ADD_STRUCT_NAME(name) { #name, name }
 
 #define DEFINE_ENUM_FLAGS(enum_name, flag_type, ...) \
@@ -7,7 +9,7 @@ const vk_struct_type_name_t enum_name[] = {\
 	__VA_ARGS__\
 };\
 char* get_##enum_name##_name(flag_type type) {\
-	u32 len = ARRAY_SIZE(enum_name);\
+	u32 len = SH_ARRAY_SIZE(enum_name);\
 	for(u32 i = 0; i < len; i++) {\
 		if(enum_name[i].value == type) return enum_name[i].name;\
 	}\
@@ -943,7 +945,7 @@ vk_struct_type_name_t VULKAN_STRUCT_NAMES[] = {
 };
 
 char* get_struct_type_name(VkStructureType type) {
-	u32 len = ARRAY_SIZE(VULKAN_STRUCT_NAMES);
+	u32 len = SH_ARRAY_SIZE(VULKAN_STRUCT_NAMES);
 
 	for(u32 i = 0; i < len; i++) {
 		if(VULKAN_STRUCT_NAMES[i].value == type) return VULKAN_STRUCT_NAMES[i].name;
@@ -964,11 +966,229 @@ void sh_print_vulkan_struct(void* vk_struct) {
 	ShVkStruct *p = vk_struct;
 	
 	while(p != NULL) {
-		printf("%s\n", GET_VK_STRUCT_TYPE_NAME( p->type ));
+		log_debugl("%s", GET_VK_STRUCT_TYPE_NAME( p->type ));
 		p = (ShVkStruct*)p->pnext;
 	}
 }
 
+
+void sh_print_physical_device_limits(VkPhysicalDeviceLimits limits) {
+
+	log_debugl("Device Limits:");
+	log_debug_morel("\tmaxImageDimension1D                             : %d", limits.maxImageDimension1D);
+	log_debug_morel("\tmaxImageDimension2D                             : %d", limits.maxImageDimension2D);
+	log_debug_morel("\tmaxImageDimension3D                             : %d", limits.maxImageDimension3D);
+	log_debug_morel("\tmaxImageDimensionCube                           : %d", limits.maxImageDimensionCube);
+	log_debug_morel("\tmaxImageArrayLayers                             : %d", limits.maxImageArrayLayers);
+	log_debug_morel("\tmaxTexelBufferElements                          : %d", limits.maxTexelBufferElements);
+	log_debug_morel("\tmaxUniformBufferRange                           : %d", limits.maxUniformBufferRange);
+	log_debug_morel("\tmaxStorageBufferRange                           : %d", limits.maxStorageBufferRange);
+	log_debug_morel("\tmaxPushConstantsSize                            : %d", limits.maxPushConstantsSize);
+	log_debug_morel("\tmaxMemoryAllocationCount                        : %d", limits.maxMemoryAllocationCount);
+	log_debug_morel("\tmaxSamplerAllocationCount                       : %d", limits.maxSamplerAllocationCount);
+	log_debug_morel("\tbufferImageGranularity                          : %lld", limits.bufferImageGranularity);
+	log_debug_morel("\tsparseAddressSpaceSize                          : %lld", limits.sparseAddressSpaceSize);
+	log_debug_morel("\tmaxBoundDescriptorSets                          : %d", limits.maxBoundDescriptorSets);
+	log_debug_morel("\tmaxPerStageDescriptorSamplers                   : %d", limits.maxPerStageDescriptorSamplers);
+	log_debug_morel("\tmaxPerStageDescriptorUniformBuffers             : %d", limits.maxPerStageDescriptorUniformBuffers);
+	log_debug_morel("\tmaxPerStageDescriptorStorageBuffers             : %d", limits.maxPerStageDescriptorStorageBuffers);
+	log_debug_morel("\tmaxPerStageDescriptorSampledImages              : %d", limits.maxPerStageDescriptorSampledImages);
+	log_debug_morel("\tmaxPerStageDescriptorStorageImages              : %d", limits.maxPerStageDescriptorStorageImages);
+	log_debug_morel("\tmaxPerStageDescriptorInputAttachments           : %d", limits.maxPerStageDescriptorInputAttachments);
+	log_debug_morel("\tmaxPerStageResources                            : %d", limits.maxPerStageResources);
+	log_debug_morel("\tmaxDescriptorSetSamplers                        : %d", limits.maxDescriptorSetSamplers);
+	log_debug_morel("\tmaxDescriptorSetUniformBuffers                  : %d", limits.maxDescriptorSetUniformBuffers);
+	log_debug_morel("\tmaxDescriptorSetUniformBuffersDynamic           : %d", limits.maxDescriptorSetUniformBuffersDynamic);
+	log_debug_morel("\tmaxDescriptorSetStorageBuffers                  : %d", limits.maxDescriptorSetStorageBuffers);
+	log_debug_morel("\tmaxDescriptorSetStorageBuffersDynamic           : %d", limits.maxDescriptorSetStorageBuffersDynamic);
+	log_debug_morel("\tmaxDescriptorSetSampledImages                   : %d", limits.maxDescriptorSetSampledImages);
+	log_debug_morel("\tmaxDescriptorSetStorageImages                   : %d", limits.maxDescriptorSetStorageImages);
+	log_debug_morel("\tmaxDescriptorSetInputAttachments                : %d", limits.maxDescriptorSetInputAttachments);
+	log_debug_morel("\tmaxVertexInputAttributes                        : %d", limits.maxVertexInputAttributes);
+	log_debug_morel("\tmaxVertexInputBindings                          : %d", limits.maxVertexInputBindings);
+	log_debug_morel("\tmaxVertexInputAttributeOffset                   : %d", limits.maxVertexInputAttributeOffset);
+	log_debug_morel("\tmaxVertexInputBindingStride                     : %d", limits.maxVertexInputBindingStride);
+	log_debug_morel("\tmaxVertexOutputComponents                       : %d", limits.maxVertexOutputComponents);
+	log_debug_morel("\tmaxTessellationGenerationLevel                  : %d", limits.maxTessellationGenerationLevel);
+	log_debug_morel("\tmaxTessellationPatchSize                        : %d", limits.maxTessellationPatchSize);
+	log_debug_morel("\tmaxTessellationControlPerVertexInputComponents  : %d", limits.maxTessellationControlPerVertexInputComponents);
+	log_debug_morel("\tmaxTessellationControlPerVertexOutputComponents : %d", limits.maxTessellationControlPerVertexOutputComponents);
+	log_debug_morel("\tmaxTessellationControlPerPatchOutputComponents  : %d", limits.maxTessellationControlPerPatchOutputComponents);
+	log_debug_morel("\tmaxTessellationControlTotalOutputComponents     : %d", limits.maxTessellationControlTotalOutputComponents);
+	log_debug_morel("\tmaxTessellationEvaluationInputComponents        : %d", limits.maxTessellationEvaluationInputComponents);
+	log_debug_morel("\tmaxTessellationEvaluationOutputComponents       : %d", limits.maxTessellationEvaluationOutputComponents);
+	log_debug_morel("\tmaxGeometryShaderInvocations                    : %d", limits.maxGeometryShaderInvocations);
+	log_debug_morel("\tmaxGeometryInputComponents                      : %d", limits.maxGeometryInputComponents);
+	log_debug_morel("\tmaxGeometryOutputComponents                     : %d", limits.maxGeometryOutputComponents);
+	log_debug_morel("\tmaxGeometryOutputVertices                       : %d", limits.maxGeometryOutputVertices);
+	log_debug_morel("\tmaxGeometryTotalOutputComponents                : %d", limits.maxGeometryTotalOutputComponents);
+	log_debug_morel("\tmaxFragmentInputComponents                      : %d", limits.maxFragmentInputComponents);
+	log_debug_morel("\tmaxFragmentOutputAttachments                    : %d", limits.maxFragmentOutputAttachments);
+	log_debug_morel("\tmaxFragmentDualSrcAttachments                   : %d", limits.maxFragmentDualSrcAttachments);
+	log_debug_morel("\tmaxFragmentCombinedOutputResources              : %d", limits.maxFragmentCombinedOutputResources);
+	log_debug_morel("\tmaxComputeSharedMemorySize                      : %d", limits.maxComputeSharedMemorySize);
+	log_debug_morel("\tmaxComputeWorkGroupCount                        : [%d, %d, %d]", limits.maxComputeWorkGroupCount[0], limits.maxComputeWorkGroupCount[1], limits.maxComputeWorkGroupCount[2]);
+	log_debug_morel("\tmaxComputeWorkGroupInvocations                  : %d", limits.maxComputeWorkGroupInvocations);
+	log_debug_morel("\tmaxComputeWorkGroupSize                         : [%d, %d, %d]", limits.maxComputeWorkGroupSize[0], limits.maxComputeWorkGroupSize[1], limits.maxComputeWorkGroupSize[2]);
+	log_debug_morel("\tsubPixelPrecisionBits                           : %d", limits.subPixelPrecisionBits);
+	log_debug_morel("\tsubTexelPrecisionBits                           : %d", limits.subTexelPrecisionBits);
+	log_debug_morel("\tmipmapPrecisionBits                             : %d", limits.mipmapPrecisionBits);
+	log_debug_morel("\tmaxDrawIndexedIndexValue                        : %d", limits.maxDrawIndexedIndexValue);
+	log_debug_morel("\tmaxDrawIndirectCount                            : %d", limits.maxDrawIndirectCount);
+	log_debug_morel("\tmaxSamplerLodBias                               : %f", limits.maxSamplerLodBias);
+	log_debug_morel("\tmaxSamplerAnisotropy                            : %f", limits.maxSamplerAnisotropy);
+	log_debug_morel("\tmaxViewports                                    : %d", limits.maxViewports);
+	log_debug_morel("\tmaxViewportDimensions                           : [%d, %d]", limits.maxViewportDimensions[0], limits.maxViewportDimensions[1]);
+	log_debug_morel("\tviewportBoundsRange                             : [%f, %f]", limits.viewportBoundsRange[0], limits.viewportBoundsRange[1]);
+	log_debug_morel("\tviewportSubPixelBits                            : %d", limits.viewportSubPixelBits);
+	log_debug_morel("\tminMemoryMapAlignment                           : %lld", limits.minMemoryMapAlignment);
+	log_debug_morel("\tminTexelBufferOffsetAlignment                   : %lld", limits.minTexelBufferOffsetAlignment);
+	log_debug_morel("\tminUniformBufferOffsetAlignment                 : %lld", limits.minUniformBufferOffsetAlignment);
+	log_debug_morel("\tminStorageBufferOffsetAlignment                 : %lld", limits.minStorageBufferOffsetAlignment);
+	log_debug_morel("\tminTexelOffset                                  : %d", limits.minTexelOffset);
+	log_debug_morel("\tmaxTexelOffset                                  : %d", limits.maxTexelOffset);
+	log_debug_morel("\tminTexelGatherOffset                            : %d", limits.minTexelGatherOffset);
+	log_debug_morel("\tmaxTexelGatherOffset                            : %d", limits.maxTexelGatherOffset);
+	log_debug_morel("\tminInterpolationOffset                          : %f", limits.minInterpolationOffset);
+	log_debug_morel("\tmaxInterpolationOffset                          : %f", limits.maxInterpolationOffset);
+	log_debug_morel("\tsubPixelInterpolationOffsetBits                 : %d", limits.subPixelInterpolationOffsetBits);
+	log_debug_morel("\tmaxFramebufferWidth                             : %d", limits.maxFramebufferWidth);
+	log_debug_morel("\tmaxFramebufferHeight                            : %d", limits.maxFramebufferHeight);
+	log_debug_morel("\tmaxFramebufferLayers                            : %d", limits.maxFramebufferLayers);
+	log_debug_morel("\tframebufferColorSampleCounts                    : %d", limits.framebufferColorSampleCounts);
+	log_debug_morel("\tframebufferDepthSampleCounts                    : %d", limits.framebufferDepthSampleCounts);
+	log_debug_morel("\tframebufferStencilSampleCounts                  : %d", limits.framebufferStencilSampleCounts);
+	log_debug_morel("\tframebufferNoAttachmentsSampleCounts            : %d", limits.framebufferNoAttachmentsSampleCounts);
+	log_debug_morel("\tmaxColorAttachments                             : %d", limits.maxColorAttachments);
+	log_debug_morel("\tsampledImageColorSampleCounts                   : %d", limits.sampledImageColorSampleCounts);
+	log_debug_morel("\tsampledImageIntegerSampleCounts                 : %d", limits.sampledImageIntegerSampleCounts);
+	log_debug_morel("\tsampledImageDepthSampleCounts                   : %d", limits.sampledImageDepthSampleCounts);
+	log_debug_morel("\tsampledImageStencilSampleCounts                 : %d", limits.sampledImageStencilSampleCounts);
+	log_debug_morel("\tstorageImageSampleCounts                        : %d", limits.storageImageSampleCounts);
+	log_debug_morel("\tmaxSampleMaskWords                              : %d", limits.maxSampleMaskWords);
+	log_debug_morel("\ttimestampComputeAndGraphics                     : %d", limits.timestampComputeAndGraphics);
+	log_debug_morel("\ttimestampPeriod                                 : %f", limits.timestampPeriod);
+	log_debug_morel("\tmaxClipDistances                                : %d", limits.maxClipDistances);
+	log_debug_morel("\tmaxCullDistances                                : %d", limits.maxCullDistances);
+	log_debug_morel("\tmaxCombinedClipAndCullDistances                 : %d", limits.maxCombinedClipAndCullDistances);
+	log_debug_morel("\tdiscreteQueuePriorities                         : %d", limits.discreteQueuePriorities);
+	log_debug_morel("\tpointSizeRange                                  : [%f, %f]", limits.pointSizeRange[0], limits.pointSizeRange[1]);
+	log_debug_morel("\tlineWidthRange                                  : [%f, %f]", limits.lineWidthRange[0], limits.lineWidthRange[1]);
+	log_debug_morel("\tpointSizeGranularity                            : %f", limits.pointSizeGranularity);
+	log_debug_morel("\tlineWidthGranularity                            : %f", limits.lineWidthGranularity);
+	log_debug_morel("\tstrictLines                                     : %d", limits.strictLines);
+	log_debug_morel("\tstandardSampleLocations                         : %d", limits.standardSampleLocations);
+	log_debug_morel("\toptimalBufferCopyOffsetAlignment                : %lld", limits.optimalBufferCopyOffsetAlignment);
+	log_debug_morel("\toptimalBufferCopyRowPitchAlignment              : %lld", limits.optimalBufferCopyRowPitchAlignment);
+	log_debug_morel("\tnonCoherentAtomSize                             : %lld", limits.nonCoherentAtomSize);
+	log_debug_morel("\tmaxImageDimension1D                             : %d", limits.maxImageDimension1D);
+	log_debug_morel("\tmaxImageDimension2D                             : %d", limits.maxImageDimension2D);
+	log_debug_morel("\tmaxImageDimension3D                             : %d", limits.maxImageDimension3D);
+	log_debug_morel("\tmaxImageDimensionCube                           : %d", limits.maxImageDimensionCube);
+	log_debug_morel("\tmaxImageArrayLayers                             : %d", limits.maxImageArrayLayers);
+	log_debug_morel("\tmaxTexelBufferElements                          : %d", limits.maxTexelBufferElements);
+	log_debug_morel("\tmaxUniformBufferRange                           : %d", limits.maxUniformBufferRange);
+	log_debug_morel("\tmaxStorageBufferRange                           : %d", limits.maxStorageBufferRange);
+	log_debug_morel("\tmaxPushConstantsSize                            : %d", limits.maxPushConstantsSize);
+	log_debug_morel("\tmaxMemoryAllocationCount                        : %d", limits.maxMemoryAllocationCount);
+	log_debug_morel("\tmaxSamplerAllocationCount                       : %d", limits.maxSamplerAllocationCount);
+	log_debug_morel("\tbufferImageGranularity                          : %lld", limits.bufferImageGranularity);
+	log_debug_morel("\tsparseAddressSpaceSize                          : %lld", limits.sparseAddressSpaceSize);
+	log_debug_morel("\tmaxBoundDescriptorSets                          : %d", limits.maxBoundDescriptorSets);
+	log_debug_morel("\tmaxPerStageDescriptorSamplers                   : %d", limits.maxPerStageDescriptorSamplers);
+	log_debug_morel("\tmaxPerStageDescriptorUniformBuffers             : %d", limits.maxPerStageDescriptorUniformBuffers);
+	log_debug_morel("\tmaxPerStageDescriptorStorageBuffers             : %d", limits.maxPerStageDescriptorStorageBuffers);
+	log_debug_morel("\tmaxPerStageDescriptorSampledImages              : %d", limits.maxPerStageDescriptorSampledImages);
+	log_debug_morel("\tmaxPerStageDescriptorStorageImages              : %d", limits.maxPerStageDescriptorStorageImages);
+	log_debug_morel("\tmaxPerStageDescriptorInputAttachments           : %d", limits.maxPerStageDescriptorInputAttachments);
+	log_debug_morel("\tmaxPerStageResources                            : %d", limits.maxPerStageResources);
+	log_debug_morel("\tmaxDescriptorSetSamplers                        : %d", limits.maxDescriptorSetSamplers);
+	log_debug_morel("\tmaxDescriptorSetUniformBuffers                  : %d", limits.maxDescriptorSetUniformBuffers);
+	log_debug_morel("\tmaxDescriptorSetUniformBuffersDynamic           : %d", limits.maxDescriptorSetUniformBuffersDynamic);
+	log_debug_morel("\tmaxDescriptorSetStorageBuffers                  : %d", limits.maxDescriptorSetStorageBuffers);
+	log_debug_morel("\tmaxDescriptorSetStorageBuffersDynamic           : %d", limits.maxDescriptorSetStorageBuffersDynamic);
+	log_debug_morel("\tmaxDescriptorSetSampledImages                   : %d", limits.maxDescriptorSetSampledImages);
+	log_debug_morel("\tmaxDescriptorSetStorageImages                   : %d", limits.maxDescriptorSetStorageImages);
+	log_debug_morel("\tmaxDescriptorSetInputAttachments                : %d", limits.maxDescriptorSetInputAttachments);
+	log_debug_morel("\tmaxVertexInputAttributes                        : %d", limits.maxVertexInputAttributes);
+	log_debug_morel("\tmaxVertexInputBindings                          : %d", limits.maxVertexInputBindings);
+	log_debug_morel("\tmaxVertexInputAttributeOffset                   : %d", limits.maxVertexInputAttributeOffset);
+	log_debug_morel("\tmaxVertexInputBindingStride                     : %d", limits.maxVertexInputBindingStride);
+	log_debug_morel("\tmaxVertexOutputComponents                       : %d", limits.maxVertexOutputComponents);
+	log_debug_morel("\tmaxTessellationGenerationLevel                  : %d", limits.maxTessellationGenerationLevel);
+	log_debug_morel("\tmaxTessellationPatchSize                        : %d", limits.maxTessellationPatchSize);
+	log_debug_morel("\tmaxTessellationControlPerVertexInputComponents  : %d", limits.maxTessellationControlPerVertexInputComponents);
+	log_debug_morel("\tmaxTessellationControlPerVertexOutputComponents : %d", limits.maxTessellationControlPerVertexOutputComponents);
+	log_debug_morel("\tmaxTessellationControlPerPatchOutputComponents  : %d", limits.maxTessellationControlPerPatchOutputComponents);
+	log_debug_morel("\tmaxTessellationControlTotalOutputComponents     : %d", limits.maxTessellationControlTotalOutputComponents);
+	log_debug_morel("\tmaxTessellationEvaluationInputComponents        : %d", limits.maxTessellationEvaluationInputComponents);
+	log_debug_morel("\tmaxTessellationEvaluationOutputComponents       : %d", limits.maxTessellationEvaluationOutputComponents);
+	log_debug_morel("\tmaxGeometryShaderInvocations                    : %d", limits.maxGeometryShaderInvocations);
+	log_debug_morel("\tmaxGeometryInputComponents                      : %d", limits.maxGeometryInputComponents);
+	log_debug_morel("\tmaxGeometryOutputComponents                     : %d", limits.maxGeometryOutputComponents);
+	log_debug_morel("\tmaxGeometryOutputVertices                       : %d", limits.maxGeometryOutputVertices);
+	log_debug_morel("\tmaxGeometryTotalOutputComponents                : %d", limits.maxGeometryTotalOutputComponents);
+	log_debug_morel("\tmaxFragmentInputComponents                      : %d", limits.maxFragmentInputComponents);
+	log_debug_morel("\tmaxFragmentOutputAttachments                    : %d", limits.maxFragmentOutputAttachments);
+	log_debug_morel("\tmaxFragmentDualSrcAttachments                   : %d", limits.maxFragmentDualSrcAttachments);
+	log_debug_morel("\tmaxFragmentCombinedOutputResources              : %d", limits.maxFragmentCombinedOutputResources);
+	log_debug_morel("\tmaxComputeSharedMemorySize                      : %d", limits.maxComputeSharedMemorySize);
+	log_debug_morel("\tmaxComputeWorkGroupCount                        : [%d, %d, %d]", limits.maxComputeWorkGroupCount[0], limits.maxComputeWorkGroupCount[1], limits.maxComputeWorkGroupCount[2]);
+	log_debug_morel("\tmaxComputeWorkGroupInvocations                  : %d", limits.maxComputeWorkGroupInvocations);
+	log_debug_morel("\tmaxComputeWorkGroupSize                         : [%d, %d, %d]", limits.maxComputeWorkGroupSize[0], limits.maxComputeWorkGroupSize[1], limits.maxComputeWorkGroupSize[2]);
+	log_debug_morel("\tsubPixelPrecisionBits                           : %d", limits.subPixelPrecisionBits);
+	log_debug_morel("\tsubTexelPrecisionBits                           : %d", limits.subTexelPrecisionBits);
+	log_debug_morel("\tmipmapPrecisionBits                             : %d", limits.mipmapPrecisionBits);
+	log_debug_morel("\tmaxDrawIndexedIndexValue                        : %d", limits.maxDrawIndexedIndexValue);
+	log_debug_morel("\tmaxDrawIndirectCount                            : %d", limits.maxDrawIndirectCount);
+	log_debug_morel("\tmaxSamplerLodBias                               : %f", limits.maxSamplerLodBias);
+	log_debug_morel("\tmaxSamplerAnisotropy                            : %f", limits.maxSamplerAnisotropy);
+	log_debug_morel("\tmaxViewports                                    : %d", limits.maxViewports);
+	log_debug_morel("\tmaxViewportDimensions                           : [%d, %d]", limits.maxViewportDimensions[0], limits.maxViewportDimensions[1]);
+	log_debug_morel("\tviewportBoundsRange                             : [%f, %f]", limits.viewportBoundsRange[0], limits.viewportBoundsRange[1]);
+	log_debug_morel("\tviewportSubPixelBits                            : %d", limits.viewportSubPixelBits);
+	log_debug_morel("\tminMemoryMapAlignment                           : %lld", limits.minMemoryMapAlignment);
+	log_debug_morel("\tminTexelBufferOffsetAlignment                   : %lld", limits.minTexelBufferOffsetAlignment);
+	log_debug_morel("\tminUniformBufferOffsetAlignment                 : %lld", limits.minUniformBufferOffsetAlignment);
+	log_debug_morel("\tminStorageBufferOffsetAlignment                 : %lld", limits.minStorageBufferOffsetAlignment);
+	log_debug_morel("\tminTexelOffset                                  : %d", limits.minTexelOffset);
+	log_debug_morel("\tmaxTexelOffset                                  : %d", limits.maxTexelOffset);
+	log_debug_morel("\tminTexelGatherOffset                            : %d", limits.minTexelGatherOffset);
+	log_debug_morel("\tmaxTexelGatherOffset                            : %d", limits.maxTexelGatherOffset);
+	log_debug_morel("\tminInterpolationOffset                          : %f", limits.minInterpolationOffset);
+	log_debug_morel("\tmaxInterpolationOffset                          : %f", limits.maxInterpolationOffset);
+	log_debug_morel("\tsubPixelInterpolationOffsetBits                 : %d", limits.subPixelInterpolationOffsetBits);
+	log_debug_morel("\tmaxFramebufferWidth                             : %d", limits.maxFramebufferWidth);
+	log_debug_morel("\tmaxFramebufferHeight                            : %d", limits.maxFramebufferHeight);
+	log_debug_morel("\tmaxFramebufferLayers                            : %d", limits.maxFramebufferLayers);
+	log_debug_morel("\tframebufferColorSampleCounts                    : %d", limits.framebufferColorSampleCounts);
+	log_debug_morel("\tframebufferDepthSampleCounts                    : %d", limits.framebufferDepthSampleCounts);
+	log_debug_morel("\tframebufferStencilSampleCounts                  : %d", limits.framebufferStencilSampleCounts);
+	log_debug_morel("\tframebufferNoAttachmentsSampleCounts            : %d", limits.framebufferNoAttachmentsSampleCounts);
+	log_debug_morel("\tmaxColorAttachments                             : %d", limits.maxColorAttachments);
+	log_debug_morel("\tsampledImageColorSampleCounts                   : %d", limits.sampledImageColorSampleCounts);
+	log_debug_morel("\tsampledImageIntegerSampleCounts                 : %d", limits.sampledImageIntegerSampleCounts);
+	log_debug_morel("\tsampledImageDepthSampleCounts                   : %d", limits.sampledImageDepthSampleCounts);
+	log_debug_morel("\tsampledImageStencilSampleCounts                 : %d", limits.sampledImageStencilSampleCounts);
+	log_debug_morel("\tstorageImageSampleCounts                        : %d", limits.storageImageSampleCounts);
+	log_debug_morel("\tmaxSampleMaskWords                              : %d", limits.maxSampleMaskWords);
+	log_debug_morel("\ttimestampComputeAndGraphics                     : %d", limits.timestampComputeAndGraphics);
+	log_debug_morel("\ttimestampPeriod                                 : %f", limits.timestampPeriod);
+	log_debug_morel("\tmaxClipDistances                                : %d", limits.maxClipDistances);
+	log_debug_morel("\tmaxCullDistances                                : %d", limits.maxCullDistances);
+	log_debug_morel("\tmaxCombinedClipAndCullDistances                 : %d", limits.maxCombinedClipAndCullDistances);
+	log_debug_morel("\tdiscreteQueuePriorities                         : %d", limits.discreteQueuePriorities);
+	log_debug_morel("\tpointSizeRange                                  : [%f, %f]", limits.pointSizeRange[0], limits.pointSizeRange[1]);
+	log_debug_morel("\tlineWidthRange                                  : [%f, %f]", limits.lineWidthRange[0], limits.lineWidthRange[1]);
+	log_debug_morel("\tpointSizeGranularity                            : %f", limits.pointSizeGranularity);
+	log_debug_morel("\tlineWidthGranularity                            : %f", limits.lineWidthGranularity);
+	log_debug_morel("\tstrictLines                                     : %d", limits.strictLines);
+	log_debug_morel("\tstandardSampleLocations                         : %d", limits.standardSampleLocations);
+	log_debug_morel("\toptimalBufferCopyOffsetAlignment                : %lld", limits.optimalBufferCopyOffsetAlignment);
+	log_debug_morel("\toptimalBufferCopyRowPitchAlignment              : %lld", limits.optimalBufferCopyRowPitchAlignment);
+	log_debug_morel("\tnonCoherentAtomSize                             : %lld", limits.nonCoherentAtomSize);
+
+}
 
 // Physical Device Type Names
 char *VK_DEVICE_TYPE_NAMES[] = {
@@ -984,7 +1204,7 @@ void sh_print_pdevice_info(VkPhysicalDeviceProperties2 *p2) {
 
 	VkPhysicalDeviceProperties *p = &p2->properties;
 
-	printf("%s[%s] - VkVersion: %d.%d.%d - Driver: %d.%d.%d\n",
+	log_debug_morel("%s[%s] - VkVersion: %d.%d.%d - Driver: %d.%d.%d",
 		p->deviceName,
 		GET_TYPE_NAME(p->deviceType),
 		VK_VERSION_MAJOR(p->apiVersion),
@@ -994,12 +1214,35 @@ void sh_print_pdevice_info(VkPhysicalDeviceProperties2 *p2) {
 		VK_VERSION_MINOR(p->driverVersion),
 		VK_VERSION_PATCH(p->driverVersion)
 	);
+
+	// sh_print_physical_device_limits(p->limits);
 }
 
 
 
 
 // Physical Device Features
+
+#define ADD_PHYSICAL_DEVICE_VK_FEATURE_NAME(name) [(offsetof(VkPhysicalDeviceVulkan13Features, name)-offsetof(VkPhysicalDeviceVulkan13Features, robustImageAccess))/4] = #name
+const char* VK_DEVICE_VK13_FEATURE_NAMES[] = {
+    ADD_PHYSICAL_DEVICE_VK_FEATURE_NAME(robustImageAccess),
+    ADD_PHYSICAL_DEVICE_VK_FEATURE_NAME(inlineUniformBlock),
+    ADD_PHYSICAL_DEVICE_VK_FEATURE_NAME(descriptorBindingInlineUniformBlockUpdateAfterBind),
+    ADD_PHYSICAL_DEVICE_VK_FEATURE_NAME(pipelineCreationCacheControl),
+    ADD_PHYSICAL_DEVICE_VK_FEATURE_NAME(privateData),
+    ADD_PHYSICAL_DEVICE_VK_FEATURE_NAME(shaderDemoteToHelperInvocation),
+    ADD_PHYSICAL_DEVICE_VK_FEATURE_NAME(shaderTerminateInvocation),
+    ADD_PHYSICAL_DEVICE_VK_FEATURE_NAME(subgroupSizeControl),
+    ADD_PHYSICAL_DEVICE_VK_FEATURE_NAME(computeFullSubgroups),
+    ADD_PHYSICAL_DEVICE_VK_FEATURE_NAME(synchronization2),
+    ADD_PHYSICAL_DEVICE_VK_FEATURE_NAME(textureCompressionASTC_HDR),
+    ADD_PHYSICAL_DEVICE_VK_FEATURE_NAME(shaderZeroInitializeWorkgroupMemory),
+    ADD_PHYSICAL_DEVICE_VK_FEATURE_NAME(dynamicRendering),
+    ADD_PHYSICAL_DEVICE_VK_FEATURE_NAME(shaderIntegerDotProduct),
+    ADD_PHYSICAL_DEVICE_VK_FEATURE_NAME(maintenance4)
+};
+
+#define GET_VK_13_FEATURE_NAME(feature) VK_DEVICE_VK13_FEATURE_NAMES[feature]
 
 #define ADD_PHYSICAL_DEVICE_FEATURE_NAME(name) [offsetof(VkPhysicalDeviceFeatures, name)/4] = #name
 char *VK_DEVICE_FEATURE_NAMES[] = {
@@ -1063,19 +1306,36 @@ char *VK_DEVICE_FEATURE_NAMES[] = {
 
 #define GET_FEATURE_NAME(feature) VK_DEVICE_FEATURE_NAMES[feature]
 
-void check_pdevice_features(VkPhysicalDeviceFeatures *fs) {
 
-	i32 feature_size = ARRAY_SIZE(VK_DEVICE_FEATURE_NAMES);
+void sh_print_pdevice_features(VkPhysicalDeviceFeatures2 *feat) {
+	i32 feature_size = SH_ARRAY_SIZE(VK_DEVICE_FEATURE_NAMES);
 	// they are just bools in the struct, abuse pointers
-	VkBool32 *f = (VkBool32*)fs;
-	printf("Features:\n");
+	VkBool32 *f = (VkBool32*)&feat->features;
+	log_debugl("Device Features:");
 	for(i32 i = 0; i < feature_size; i++) {
-		printf("\t%-40s = %X\n", GET_FEATURE_NAME(i), f[i]);
+		log_debug_morel("\t%-40s = %X", GET_FEATURE_NAME(i), f[i]);
 	}
-}
 
-void sh_print_pdevice_feature(VkPhysicalDeviceFeatures2 *feat) {
-	check_pdevice_features(&feat->features);
+	if(feat->pNext != NULL) {
+
+		typedef struct ShVkStruct {
+			VkStructureType type;
+			VkStructureType *pnext;	
+		} ShVkStruct;
+
+		ShVkStruct *v = (ShVkStruct*) feat->pNext;
+
+		if(v->type == VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES) {
+			VkPhysicalDeviceVulkan13Features *vk13feat = feat->pNext;
+			log_debug_morel("Vulkan 1.3 Supported Features: ");
+			VkBool32 *vk13featbools = (VkBool32*)((char*)vk13feat + offsetof(VkPhysicalDeviceVulkan13Features, robustImageAccess));
+			for(i32 i = 0; i < SH_ARRAY_SIZE(VK_DEVICE_VK13_FEATURE_NAMES); i++) {
+				log_debug_morel("\t%-50s = %d", GET_VK_13_FEATURE_NAME(i), vk13featbools[i]);
+			}
+		}
+
+	}
+	
 }
 
 
@@ -1106,12 +1366,12 @@ const char* const VK_QUEUE_FAMILY_FLAG_NAMES[] = {
 #define GET_QUEUE_FLAG_NAME(flag) VK_QUEUE_FAMILY_FLAG_NAMES[flag]
 
 void sh_print_queue_family_flags(VkQueueFlagBits flags) {
-	printf("Flags:\n");
-	printf("\t%-27s = %d\n", GET_QUEUE_FLAG_NAME(VK_QUEUE_GRAPHICS_BIT), (flags & VK_QUEUE_GRAPHICS_BIT) > 0);
-	printf("\t%-27s = %d\n", GET_QUEUE_FLAG_NAME(VK_QUEUE_COMPUTE_BIT), (flags & VK_QUEUE_COMPUTE_BIT) > 0);
-	printf("\t%-27s = %d\n", GET_QUEUE_FLAG_NAME(VK_QUEUE_TRANSFER_BIT), (flags & VK_QUEUE_TRANSFER_BIT) > 0);
-	printf("\t%-27s = %d\n", GET_QUEUE_FLAG_NAME(VK_QUEUE_SPARSE_BINDING_BIT), (flags & VK_QUEUE_SPARSE_BINDING_BIT) > 0);
-	printf("\t%-27s = %d\n", GET_QUEUE_FLAG_NAME(VK_QUEUE_PROTECTED_BIT), (flags & VK_QUEUE_PROTECTED_BIT) > 0);
+	log_debug_morel("Flags:");
+	log_debug_morel("\t%-27s = %d", GET_QUEUE_FLAG_NAME(VK_QUEUE_GRAPHICS_BIT), (flags & VK_QUEUE_GRAPHICS_BIT) > 0);
+	log_debug_morel("\t%-27s = %d", GET_QUEUE_FLAG_NAME(VK_QUEUE_COMPUTE_BIT), (flags & VK_QUEUE_COMPUTE_BIT) > 0);
+	log_debug_morel("\t%-27s = %d", GET_QUEUE_FLAG_NAME(VK_QUEUE_TRANSFER_BIT), (flags & VK_QUEUE_TRANSFER_BIT) > 0);
+	log_debug_morel("\t%-27s = %d", GET_QUEUE_FLAG_NAME(VK_QUEUE_SPARSE_BINDING_BIT), (flags & VK_QUEUE_SPARSE_BINDING_BIT) > 0);
+	log_debug_morel("\t%-27s = %d", GET_QUEUE_FLAG_NAME(VK_QUEUE_PROTECTED_BIT), (flags & VK_QUEUE_PROTECTED_BIT) > 0);
 }
 
 
@@ -1119,18 +1379,20 @@ void sh_print_queue_family_flags(VkQueueFlagBits flags) {
 // Memory Property Flags Names
 
 vk_struct_type_name_t VK_MEMORY_PROPERTY_FLAG_NAME[] = {
+
 	ADD_STRUCT_NAME(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT),
-	ADD_STRUCT_NAME(VK_MEMORY_PROPERTY_HOST_COHERENT_BIT),
-	ADD_STRUCT_NAME(VK_MEMORY_PROPERTY_HOST_CACHED_BIT),
-	ADD_STRUCT_NAME(VK_MEMORY_PROPERTY_LAZILY_ALLOCATED_BIT),
-	ADD_STRUCT_NAME(VK_MEMORY_PROPERTY_PROTECTED_BIT),
-	ADD_STRUCT_NAME(VK_MEMORY_PROPERTY_DEVICE_COHERENT_BIT_AMD),
-	ADD_STRUCT_NAME(VK_MEMORY_PROPERTY_DEVICE_UNCACHED_BIT_AMD),
-	ADD_STRUCT_NAME(VK_MEMORY_PROPERTY_RDMA_CAPABLE_BIT_NV)
+	ADD_STRUCT_NAME(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT),
+    ADD_STRUCT_NAME(VK_MEMORY_PROPERTY_HOST_COHERENT_BIT),
+    ADD_STRUCT_NAME(VK_MEMORY_PROPERTY_HOST_CACHED_BIT),
+    ADD_STRUCT_NAME(VK_MEMORY_PROPERTY_LAZILY_ALLOCATED_BIT),
+    ADD_STRUCT_NAME(VK_MEMORY_PROPERTY_PROTECTED_BIT),
+    ADD_STRUCT_NAME(VK_MEMORY_PROPERTY_DEVICE_COHERENT_BIT_AMD),
+    ADD_STRUCT_NAME(VK_MEMORY_PROPERTY_DEVICE_UNCACHED_BIT_AMD),
+    ADD_STRUCT_NAME(VK_MEMORY_PROPERTY_RDMA_CAPABLE_BIT_NV),
 };
 
 char* get_memory_flag_name(VkMemoryPropertyFlagBits type) {
-	u32 len = ARRAY_SIZE(VK_MEMORY_PROPERTY_FLAG_NAME);
+	u32 len = SH_ARRAY_SIZE(VK_MEMORY_PROPERTY_FLAG_NAME);
 	for(u32 i = 0; i < len; i++) {
 		if(VK_MEMORY_PROPERTY_FLAG_NAME[i].value == type) return VK_MEMORY_PROPERTY_FLAG_NAME[i].name;
 	}
@@ -1141,10 +1403,10 @@ char* get_memory_flag_name(VkMemoryPropertyFlagBits type) {
 
 void sh_print_memory_type_flags(VkMemoryPropertyFlags flags) {
 
-	printf("\tMemory Type Flags [0x%X]:\n", flags);
-	u32 memory_property_flags_count = ARRAY_SIZE(VK_MEMORY_PROPERTY_FLAG_NAME);
+	log_debug_morel("\tMemory Type Flags [0x%X]:", flags);
+	u32 memory_property_flags_count = SH_ARRAY_SIZE(VK_MEMORY_PROPERTY_FLAG_NAME);
 	for(u32 i = 0; i < memory_property_flags_count; i++ ) {
-		printf("\t\t%-45s : %d\n", VK_MEMORY_PROPERTY_FLAG_NAME[i].name,  ( flags & VK_MEMORY_PROPERTY_FLAG_NAME[i].value ) > 0 );
+		log_debug_morel("\t\t%-45s : %d", VK_MEMORY_PROPERTY_FLAG_NAME[i].name,  ( flags & VK_MEMORY_PROPERTY_FLAG_NAME[i].value ) > 0 );
 	}
 
 }
@@ -1158,7 +1420,7 @@ vk_struct_type_name_t VK_MEMORY_HEAP_FLAG_BIT_NAME[] = {
 };
 
 char* get_memory_heap_flag_name(VkMemoryHeapFlagBits type) {
-	u32 len = ARRAY_SIZE(VK_MEMORY_HEAP_FLAG_BIT_NAME);
+	u32 len = SH_ARRAY_SIZE(VK_MEMORY_HEAP_FLAG_BIT_NAME);
 	for(u32 i = 0; i < len; i++) {
 		if(VK_MEMORY_HEAP_FLAG_BIT_NAME[i].value == type) return VK_MEMORY_HEAP_FLAG_BIT_NAME[i].name;
 	}
@@ -1169,25 +1431,26 @@ char* get_memory_heap_flag_name(VkMemoryHeapFlagBits type) {
 
 void sh_print_memory_heap_flags(VkMemoryHeapFlags flags) {
 
-	printf("\t\tMemory Heap Flags [0x%X]:\n", flags);
-	u32 memory_heap_flags_count = ARRAY_SIZE(VK_MEMORY_HEAP_FLAG_BIT_NAME);
+	log_debug_morel("\t\tMemory Heap Flags [0x%X]:", flags);
+	u32 memory_heap_flags_count = SH_ARRAY_SIZE(VK_MEMORY_HEAP_FLAG_BIT_NAME);
 	for(u32 i = 0; i < memory_heap_flags_count; i++ ) {
-		printf("\t\t\t%s : %d\n", VK_MEMORY_HEAP_FLAG_BIT_NAME[i].name,  ( flags & VK_MEMORY_HEAP_FLAG_BIT_NAME[i].value ) > 0 );
+		log_debug_morel("\t\t\t%s : %d", VK_MEMORY_HEAP_FLAG_BIT_NAME[i].name,  ( flags & VK_MEMORY_HEAP_FLAG_BIT_NAME[i].value ) > 0 );
 	}
 
 }
 
 void sh_print_pdevice_memory_properties(VkPhysicalDeviceMemoryProperties *prop) {
 
-	puts("Memory Heaps: ");
+	log_debugl("Memory Heaps: ");
 	for(u32 i = 0; i < prop->memoryHeapCount; i++) {
-		printf("\t[%d] Size: %lldMB\n", i,  prop->memoryHeaps[i].size/(1024*1024));
+		log_debug_morel("\t[%d] Size: %lldMB", i,  prop->memoryHeaps[i].size/(1024*1024));
 		sh_print_memory_heap_flags(prop->memoryHeaps[i].flags);
 	}
 
-	puts("Memory Types: ");
+	log_debugl("Memory Types: ");
 	for(u32 i = 0; i < prop->memoryTypeCount; i++ ) {
-		printf("\tHeap Index: %d\n", prop->memoryTypes[i].heapIndex);
+		log_debug_morel("Memory ID: %d", i);
+		log_debug_morel("\tHeap Index: %d", prop->memoryTypes[i].heapIndex);
 		sh_print_memory_type_flags(prop->memoryTypes[i].propertyFlags);
 	}
 }
@@ -1203,7 +1466,7 @@ const vk_struct_type_name_t VK_SURFACE_COMPOSITE_ALPHA_FLAG_BITS[] = {
 };
 
 char* get_surface_composite_alpha_flag_name(VkCompositeAlphaFlagBitsKHR type) {
-	u32 len = ARRAY_SIZE(VK_SURFACE_COMPOSITE_ALPHA_FLAG_BITS);
+	u32 len = SH_ARRAY_SIZE(VK_SURFACE_COMPOSITE_ALPHA_FLAG_BITS);
 	for(u32 i = 0; i < len; i++) {
 		if(VK_SURFACE_COMPOSITE_ALPHA_FLAG_BITS[i].value == type) return VK_SURFACE_COMPOSITE_ALPHA_FLAG_BITS[i].name;
 	}
@@ -1228,7 +1491,7 @@ const vk_struct_type_name_t VK_SURFACE_TRANSFORM_FLAG_BITS[] = {
 };
 
 char* get_surface_flag_name(VkSurfaceTransformFlagBitsKHR type) {
-	u32 len = ARRAY_SIZE(VK_SURFACE_TRANSFORM_FLAG_BITS);
+	u32 len = SH_ARRAY_SIZE(VK_SURFACE_TRANSFORM_FLAG_BITS);
 	for(u32 i = 0; i < len; i++) {
 		if(VK_SURFACE_TRANSFORM_FLAG_BITS[i].value == type) return VK_SURFACE_TRANSFORM_FLAG_BITS[i].name;
 	}
@@ -1260,36 +1523,36 @@ DEFINE_ENUM_FLAGS(VK_IMAGE_USAGE_FLAG_NAME, VkImageUsageFlagBits,\
 
 void sh_print_surface_capabilities(VkSurfaceCapabilitiesKHR *cap) {
 
-	puts("Surface Capabilities:");
-	printf("\tminImageCount: %d\n", cap->minImageCount);
-	printf("\tmaxImageCount: %d\n", cap->maxImageCount);
-	printf("\tcurrent Extent: [%d %d]\n", cap->currentExtent.width, cap->currentExtent.height);
-	printf("\tmin Extent: [%d %d]\n", cap->minImageExtent.width, cap->minImageExtent.height);
-	printf("\tmax Extent: [%d %d]\n", cap->maxImageExtent.width, cap->maxImageExtent.height);
-	printf("\tmax Image Array: %d\n", cap->maxImageArrayLayers);
+	log_debugl("Surface Capabilities:");
+	log_debug_morel("\tminImageCount: %d", cap->minImageCount);
+	log_debug_morel("\tmaxImageCount: %d", cap->maxImageCount);
+	log_debug_morel("\tcurrent Extent: [%d %d]", cap->currentExtent.width, cap->currentExtent.height);
+	log_debug_morel("\tmin Extent: [%d %d]", cap->minImageExtent.width, cap->minImageExtent.height);
+	log_debug_morel("\tmax Extent: [%d %d]", cap->maxImageExtent.width, cap->maxImageExtent.height);
+	log_debug_morel("\tmax Image Array: %d", cap->maxImageArrayLayers);
 
-	printf("\tSurface Transform Flags[%x]: \n", cap->supportedTransforms);
+	log_debug_morel("\tSurface Transform Flags[%x]: ", cap->supportedTransforms);
 	
-	for(i32 i = 0; i < ARRAY_SIZE(VK_SURFACE_TRANSFORM_FLAG_BITS); i++) {
-		printf("\t\t%-58s: %d\n", VK_SURFACE_TRANSFORM_FLAG_BITS[i].name, (cap->supportedTransforms & VK_SURFACE_TRANSFORM_FLAG_BITS[i].value) > 0 );
+	for(i32 i = 0; i < SH_ARRAY_SIZE(VK_SURFACE_TRANSFORM_FLAG_BITS); i++) {
+		log_debug_morel("\t\t%-58s: %d", VK_SURFACE_TRANSFORM_FLAG_BITS[i].name, (cap->supportedTransforms & VK_SURFACE_TRANSFORM_FLAG_BITS[i].value) > 0 );
 	}
 
-	printf("\tCurrent Surface Transform Flags[%x]: \n", cap->currentTransform);
+	log_debug_morel("\tCurrent Surface Transform Flags[%x]: ", cap->currentTransform);
 	
-	for(i32 i = 0; i < ARRAY_SIZE(VK_SURFACE_TRANSFORM_FLAG_BITS); i++) {
-		printf("\t\t%-58s: %d\n", VK_SURFACE_TRANSFORM_FLAG_BITS[i].name, (cap->currentTransform & VK_SURFACE_TRANSFORM_FLAG_BITS[i].value) > 0 );
+	for(i32 i = 0; i < SH_ARRAY_SIZE(VK_SURFACE_TRANSFORM_FLAG_BITS); i++) {
+		log_debug_morel("\t\t%-58s: %d", VK_SURFACE_TRANSFORM_FLAG_BITS[i].name, (cap->currentTransform & VK_SURFACE_TRANSFORM_FLAG_BITS[i].value) > 0 );
 	}
 
 
-	printf("\tCurrent Surface Composite Alpha Flags[%x]: \n", cap->supportedCompositeAlpha);
-	for(i32 i = 0; i < ARRAY_SIZE(VK_SURFACE_COMPOSITE_ALPHA_FLAG_BITS); i++) {
-		printf("\t\t%-58s: %d\n", VK_SURFACE_COMPOSITE_ALPHA_FLAG_BITS[i].name, (cap->supportedCompositeAlpha & VK_SURFACE_COMPOSITE_ALPHA_FLAG_BITS[i].value) > 0 );
+	log_debug_morel("\tCurrent Surface Composite Alpha Flags[%x]: ", cap->supportedCompositeAlpha);
+	for(i32 i = 0; i < SH_ARRAY_SIZE(VK_SURFACE_COMPOSITE_ALPHA_FLAG_BITS); i++) {
+		log_debug_morel("\t\t%-58s: %d", VK_SURFACE_COMPOSITE_ALPHA_FLAG_BITS[i].name, (cap->supportedCompositeAlpha & VK_SURFACE_COMPOSITE_ALPHA_FLAG_BITS[i].value) > 0 );
 	}
 
 
-	printf("\tImage Usage Flags[%x]: \n", cap->supportedUsageFlags);
-	for(i32 i = 0; i < ARRAY_SIZE(VK_IMAGE_USAGE_FLAG_NAME); i++) {
-		printf("\t\t%-58s: %d\n",
+	log_debug_morel("\tImage Usage Flags[%x]: ", cap->supportedUsageFlags);
+	for(i32 i = 0; i < SH_ARRAY_SIZE(VK_IMAGE_USAGE_FLAG_NAME); i++) {
+		log_debug_morel("\t\t%-58s: %d",
 				VK_IMAGE_USAGE_FLAG_NAME[i].name,
 				(cap->supportedUsageFlags & VK_IMAGE_USAGE_FLAG_NAME[i].value) > 0 );
 	}
@@ -1631,7 +1894,7 @@ DEFINE_ENUM_FLAGS(vk_present_mode, VkPresentModeKHR,
 		ADD_STRUCT_NAME(VK_PRESENT_MODE_SHARED_CONTINUOUS_REFRESH_KHR)
 );
 
-
+#if 1
 const glslang_resource_t sh_vk_default_resource_limits = {
 		/* .MaxLights = */ 32,
 		/* .MaxClipPlanes = */ 6,
@@ -1740,10 +2003,34 @@ const glslang_resource_t sh_vk_default_resource_limits = {
 		}
 	};
 
-
 const VkShaderStageFlagBits vk_glslang_to_stage[] = {
 	[GLSLANG_STAGE_VERTEX] = VK_SHADER_STAGE_VERTEX_BIT,
 	[GLSLANG_STAGE_FRAGMENT] = VK_SHADER_STAGE_FRAGMENT_BIT
 };
+#endif
 
 #define CONVERT_GLSLANG_STAGE_TO_VK_STAGE(flag) vk_glslang_to_stage[flag]
+
+
+void sh_print_memory_type_bits(VkMemoryPropertyFlags flags) {
+
+	i32 arr_len = SH_ARRAY_SIZE(VK_MEMORY_PROPERTY_FLAG_NAME);
+
+	for(i32 i = 0; i < arr_len; i++) {
+		if( VK_MEMORY_PROPERTY_FLAG_NAME[i].value & flags ) {
+			log_debug_morel("%s", VK_MEMORY_PROPERTY_FLAG_NAME[i].name);
+		}
+	}
+
+}
+
+void sh_print_memory_requirements(VkMemoryRequirements2 *mem_req) {
+	log_debugl(
+			"Memory Requirement:\n\tSize     : %lld\n\tAlignment: %lld\n\tmemBits  :  %d",
+			mem_req->memoryRequirements.size,
+			mem_req->memoryRequirements.alignment,
+			mem_req->memoryRequirements.memoryTypeBits
+			);
+
+	sh_print_memory_type_bits(mem_req->memoryRequirements.memoryTypeBits);
+}

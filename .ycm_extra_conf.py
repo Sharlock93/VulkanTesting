@@ -1,14 +1,15 @@
 def Settings(**kwargs):
 	return {
 		"flags": [
+			"-I", "3rd_party/",
+			"-I", "headers/",
+			"-I", "lib/",
 			"-I", "src/",
-			"-I", "include",
-			"-I", "C:/VulkanSDK/1.2.198.1/Include",
-			"-target", "x86_64-pc-windows-gnu",
+			"-x", "c",
+			"--std","c11",
 			"-DUSE_PLATFORM_WIN32_KHR",
 			"-DNO_VK_PROTOTYPES"
 		],
 
 		"override_filename" : "src/main.c",
-		"file": "src/main.c"
 	}

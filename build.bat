@@ -1,16 +1,30 @@
 @echo off
 
-set libs_win=kernel32.lib user32.lib gdi32.lib GenericCodeGend.lib glslang-default-resource-limitsd.lib glslangd.lib HLSLd.lib MachineIndependentd.lib OGLCompilerd.lib OSDependentd.lib SPIRV-Tools-optd.lib SPIRV-Toolsd.lib SPIRVd.lib SPVRemapperd.lib
-:: set inc="C:/VulkanSDK/1.2.198.1/Include/"
-:: set lib_vulk="C:/VulkanSDK/1.2.198.1/Lib/"
-set inc="S:\code\projects\vulkan_glsl\build\install\include"
-set lib_vulk="S:\code\projects\vulkan_glsl\build\install\lib"
-set compiler_ops=-W3 /Zi /MDd /EHsc
-set link_ops=/LIBPATH:%lib_vulk%
+set libs_win= ^
+kernel32.lib ^
+user32.lib ^
+dbghelp.lib ^
+gdi32.lib ^
+OSDependent.lib ^
+OGLCompiler.lib ^
+glslang.lib ^
+SPIRV.lib ^
+HLSL.lib ^
+SPIRV-Tools-opt.lib ^
+SPIRV-Tools.lib ^
+GenericCodeGen.lib ^
+MachineIndependent.lib ^
+glslang-default-resource-limits.lib ^
+SPVRemapper.lib
+
+set third_party_headers="./3rd_party/"
+set third_party_libs="./3rd_party/libs/"
+set compiler_ops= -W3 /wd5105 /Zi /MD /EHsc /std:c11
+set link_ops=/LIBPATH:%third_party_libs% /LIBPATH:"3rd_party/libs/glslang_libs/"
 
 cl /nologo ^
--Iinclude ^
--I %inc% ^
+-I %third_party_headers% ^
+-I headers ^
 src\main.c ^
 /Fe./build/main.exe -Fo./build/main.obj -Fd./build/main.pdb ^
 %libs_win% ^

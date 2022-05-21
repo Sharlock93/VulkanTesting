@@ -1,128 +1,66 @@
-#ifndef SH_SIMPLE_MATH
-#define SH_SIMPLE_MATH
-
-typedef union {
-	struct {
-		f32 x;
-		f32 y;
-		f32 z;
-	};
-
-	f32 _d[3];
-} sh_vec3;
-
-
-typedef union {
-	struct {
-		f32 x;
-		f32 y;
-		f32 z;
-		f32 w;
-	};
-
-	f32 _d[4];
-} pos4;
-
-
-
-typedef union {
-	struct {
-		pos4 a;
-		pos4 b;
-		pos4 c;
-		pos4 d;
-	};
-
-	f32 m[16];
-}  mat4;
-
-
-
-typedef struct sh_vec2 {
-	f32 x;
-	f32 y;
-} sh_vec2, pos2;
-
-
-void sh_vec2_add(sh_vec2 *r, sh_vec2 *a, sh_vec2 *b);
-void sh_vec2_sub(sh_vec2 *r, sh_vec2 *a, sh_vec2 *b);
-void sh_vec2_mul(sh_vec2 *r, sh_vec2 *a, float val);
-float sh_vec2_dot(sh_vec2 *a, sh_vec2 *b);
-void sh_vec2_normal(sh_vec2 *r, sh_vec2 *a);
-float sh_vec2_lensq(sh_vec2 *a);
-float sh_vec2_len(sh_vec2 *a);
-void sh_vec2_normalize(sh_vec2 *r, sh_vec2 *a);
-
-// void sh_vec2_add(sh_vec2 *r, sh_vec2 *a, sh_vec2 *b) {
-// 	r->x = a->x + b->x;
-// 	r->y = a->y + b->y;
-// }
-
-// void sh_vec2_sub(sh_vec2 *r, sh_vec2 *a, sh_vec2 *b) {
-// 	r->x = a->x - b->x;
-// 	r->y = a->y - b->y;
-// }
-
-// void sh_vec2_mul(sh_vec2 *r, sh_vec2 *a, float val) {
-// 	r->x = a->x*val;
-// 	r->y = a->y*val;
-// }
-
-
-// void sh_vec2_normal(sh_vec2 *r, sh_vec2 *a) {
-// 	r->x = -a->y;
-// 	r->y =  a->x;
-// }
-
-// void sh_vec2_normalize(sh_vec2 *r, sh_vec2 *a) {
-// 	float length = sh_vec2_len(a);
-// 	r->x = a->x/length;
-// 	r->y = a->y/length;
-// }
-
-// float sh_vec2_lensq(sh_vec2 *a) {
-// 	return a->x*a->x + a->y*a->y;
-// }
-
-// float sh_vec2_len(sh_vec2 *a) {
-// 	return sqrt(sh_vec2_lensq(a));
-// }
-
-// float sh_vec2_dot(sh_vec2 *a, sh_vec2 *b) {
-// 	return a->x*b->x + a->y*b->y;
-// }
-
+#include "sh_simple_vec_math.h"
 
 //debug funcs
-
-void print_sh_vec2(sh_vec2 *p) {
+void sh_print_sh_vec2(sh_vec2 *p) {
 	printf("(x: %f, y: %f)", p->x, p->y);
 }
 
-
-void print_mat4(mat4 *m) {
-	printf(
-			"%.4f %.4f %.4f %.4f\n"\
-			"%.4f %.4f %.4f %.4f\n"\
-			"%.4f %.4f %.4f %.4f\n"\
-			"%.4f %.4f %.4f %.4f\n",
-			m->m[0], m->m[1],  m->m[2],  m->m[3],
-			m->m[4], m->m[5],  m->m[6],  m->m[7],
-			m->m[8], m->m[9],  m->m[10], m->m[11],
-			m->m[12],m->m[13], m->m[14], m->m[15]);
-
+void sh_print_sh_vec3(sh_vec3 *p) {
+	printf("(x: %f, y: %f, z: %f)\n", p->x, p->y, p->z);
 }
 
-mat4 ortho(float left, float right, float bottom, float top, float pnear, float pfar) {
 
-	float width = (right-left);
-	float height = (top - bottom);
-	mat4 m = {0};
+void sh_print_mat4(sh_mat4 *m) {
+	printf(
+		"%.4f %.4f %.4f %.4f\n"\
+		"%.4f %.4f %.4f %.4f\n"\
+		"%.4f %.4f %.4f %.4f\n"\
+		"%.4f %.4f %.4f %.4f\n",
+		m->m[0], m->m[1],  m->m[2],  m->m[3],
+		m->m[4], m->m[5],  m->m[6],  m->m[7],
+		m->m[8], m->m[9],  m->m[10], m->m[11],
+		m->m[12],m->m[13], m->m[14], m->m[15]
+	);
+}
 
+void sh_mat4_transpose(sh_mat4 *m) {
+
+	SH_SWAP_F(m->_mm[0][1], m->_mm[1][0]);
+	SH_SWAP_F(m->_mm[0][2], m->_mm[2][0]);
+	SH_SWAP_F(m->_mm[0][3], m->_mm[3][0]);
+
+	SH_SWAP_F(m->_mm[2][1], m->_mm[1][2]);
+	SH_SWAP_F(m->_mm[3][1], m->_mm[1][3]);
+	SH_SWAP_F(m->_mm[3][2], m->_mm[2][3]);
+}
+
+sh_mat4 sh_lookat(const sh_vec3 * const eye_pos, const sh_vec3 * const look_point, const sh_vec3 *const up_direction) {
+	sh_vec3 forward = sh_vec3_new_sub_vec3(eye_pos, look_point);
+	sh_vec3_normalize_ref(&forward);
+	sh_vec3 left = sh_vec3_cross(up_direction, &forward);
+
+	sh_vec3_normalize_ref(&left);
+
+	sh_vec3 up = sh_vec3_cross(&forward, &left);
+
+	return (sh_mat4){
+		   left.x,    left.y,    left.z,    -left.x*eye_pos->x -    left.y*eye_pos->y -    left.z*eye_pos->z,
+		     up.x,      up.y,      up.z,      -up.x*eye_pos->x -      up.y*eye_pos->y -      up.z*eye_pos->z,
+		forward.x, forward.y, forward.z, -forward.x*eye_pos->x - forward.y*eye_pos->y - forward.z*eye_pos->z,
+		0, 0, 0, 1,
+	};
+}
+
+
+sh_mat4 sh_ortho(f32 left, f32 right, f32 bottom, f32 top, f32 pnear, f32 pfar) {
+
+	f32 width = (right-left);
+	f32 height = (top - bottom);
+	sh_mat4 m = {0};
 
 	m.a.x =  2.0f/(width);
 	m.b.y =  2.0f/(height);
-	m.c.z =  -2.0f/(pfar - pnear);
+	m.c.z =  2.0f/(pfar - pnear);
 
 	m.a.w = - (right + left) / (right - left);
 	m.b.w = - (top + bottom) / (top - bottom);
@@ -131,78 +69,52 @@ mat4 ortho(float left, float right, float bottom, float top, float pnear, float 
 	return m;
 }
 
-mat4 fr_test(float left,    float right,
-                  float bottom,  float top,
-                  float nearZ, float farZ) {
-  float rl, tb, fn, nv;
+sh_mat4 sh_frustum(f32 left, f32 right, f32 bottom, f32 top, f32 pnear, f32 pfar) {
 
-  mat4 m = {0};
-  
-  
+	f32 width = (right-left);
+	f32 height = (top - bottom);
 
-  rl = 1.0f / (right  - left);
-  tb = 1.0f / (top    - bottom);
-  fn =-1.0f / (farZ - nearZ);
-  nv = 2.0f * nearZ;
-
-  // m.m[0 + 4*0] = nv * rl;
-  // m.m[1 + 4*1] = nv * tb;
-  // m.m[2 + 4*0] = (right  + left)    * rl;
-  // m.m[2 + 4*1] = (top    + bottom)  * tb;
-  // m.m[2 + 4*2] = (farZ + nearZ) * fn;
-  // m.m[2 + 4*3] =-1.0f;
-  // m.m[3 + 4*2] = farZ * nv * fn;
-
-  m.m[0 + 4*0] = nv * rl;
-  m.m[1 + 4*1] = nv * tb;
-  m.m[2 + 4*0] = (right  + left)    * rl;
-  m.m[2 + 4*1] = (top    + bottom)  * tb;
-  m.m[2 + 4*2] = farZ * fn;
-  m.m[2 + 4*3] =-1.0f;
-  m.m[3 + 4*2] = farZ * nearZ * fn;
-
-
-  return m;
-}
-
-mat4 frustum(float left, float right, float bottom, float top, float pnear, float pfar) {
-
-	float width = (right-left);
-	float height = (top - bottom);
-
-	mat4 m = {0};
+	sh_mat4 m = {0};
 
 	m.a.x = 2.0f*pnear/(width);
-	m.b.y = 2.0f*pnear/(height);
-	m.c.z = -(pfar + pnear) / (pfar - pnear);
-
 	m.a.z = (right + left) / (width);
+
+	m.b.y = 2.0f*pnear/(height);
 	m.b.z = (top + bottom) / (height);
 
-	m.c.w = - 2*pfar*pnear / (pfar - pnear);
+	m.c.z = (pnear) / (pfar - pnear);
+	m.c.w = pfar*pnear / (pfar - pnear);
+
 	m.d.z = -1;
 
 	return m;
 }
 
 
+sh_mat4 sh_perspective(f32 fov, f32 aspect, f32 pnear, f32 pfar) {
 
-sh_vec3 sh_vec3_sub(sh_vec3 a, sh_vec3 b) {
+    f32 top = (f32)tan((fov/2.0f) * 3.1459f/180.0f) * pnear;
+    f32 right = top * aspect;
+	f32 z_a = -(pfar + pnear) / (pfar - pnear);
+	f32 z_b = -2 * pfar * pnear / (pfar - pnear);
 
-	sh_vec3 sub = {
-		a.x - b.x,
-		a.y - b.y,
-		a.z - b.z,
-	};
+	sh_mat4 m = {
+		pnear / right, 0, 0, 0,
+        0, -pnear / top, 0, 0,
+        0, 0, z_a, z_b,
+        0, 0, -1,0 };
 
-	return sub;
+    return m;
 }
 
-float sh_vec3_lengthsq(sh_vec3 *p) {
+
+
+
+f32 sh_vec3_lengthsq(sh_vec3 *p) {
 	return p->x*p->x + p->y*p->y + p->z*p->z;
 }
 
-float sh_vec3_vec3_lengthsq(sh_vec3 *p, sh_vec3 *p2) {
+f32 sh_vec3_vec3_lengthsq(sh_vec3 *p, sh_vec3 *p2) {
 
 	f32 x = (p2->x - p->x);
 	f32 y = (p2->y - p->y);
@@ -211,22 +123,19 @@ float sh_vec3_vec3_lengthsq(sh_vec3 *p, sh_vec3 *p2) {
 	return x*x + y*y + z*z;
 }
 
-
-
-float sh_vec3_length(sh_vec3 *p) {
-	return (float)sqrt( p->x*p->x + p->y*p->y + p->z*p->z );
+f32 sh_vec3_length(sh_vec3 *p) {
+	return (f32)sqrt( p->x*p->x + p->y*p->y + p->z*p->z );
 }
 
-
 void sh_vec3_normalize_ref(sh_vec3 *p) {
-	float len = sh_vec3_length(p);
+	f32 len = sh_vec3_length(p);
 
 	p->x /= len;
 	p->y /= len;
 	p->z /= len;
 }
 
-sh_vec3 sh_vec3_cross(sh_vec3 *p1, sh_vec3 *p2) {
+sh_vec3 sh_vec3_cross(const sh_vec3 * const p1, const sh_vec3 * const p2) {
 
 	return ( sh_vec3 ){
 		p1->y * p2->z - p1->z * p2->y, //x
@@ -240,22 +149,17 @@ f32 sh_vec3_dot(sh_vec3 *p1, sh_vec3 *p2) {
 	return p1->x*p2->x + p1->y*p2->y + p1->z*p2->z;
 }
 
-void sh_vec3_mul_scaler(sh_vec3 *v, float scaler) {
+void sh_vec3_mul_scaler(sh_vec3 *v, f32 scaler) {
 	v->x *= scaler;
 	v->y *= scaler;
 	v->z *= scaler;
 }
 
-
-
-
-void sh_vec3_div_scaler(sh_vec3 *v, float scaler) {
-
+void sh_vec3_div_scaler(sh_vec3 *v, f32 scaler) {
 	v->x /= scaler;
 	v->y /= scaler;
 	v->z /= scaler;
 }
-
 
 void sh_vec3_mul_vec3(sh_vec3 *v, sh_vec3 *v2) {
 	v->x *= v2->x;
@@ -269,12 +173,20 @@ void sh_vec3_add_vec3(sh_vec3 *v, sh_vec3 *v2) {
 	v->z += v2->z;
 }
 
+sh_vec3 sh_vec3_sub(sh_vec3 a, sh_vec3 b) {
+	sh_vec3 sub = {
+		a.x - b.x,
+		a.y - b.y,
+		a.z - b.z,
+	};
+	return sub;
+}
+
 void sh_vec3_sub_vec3(sh_vec3 *v, sh_vec3 *v2) {
 	v->x -= v2->x;
 	v->y -= v2->y;
 	v->z -= v2->z;
 }
-
 
 sh_vec3 sh_vec3_new_add_vec3(sh_vec3 *v, sh_vec3 *v2) {
 	return (sh_vec3) {
@@ -284,8 +196,7 @@ sh_vec3 sh_vec3_new_add_vec3(sh_vec3 *v, sh_vec3 *v2) {
 	};
 }
 
-
-sh_vec3 sh_vec3_new_mul_scaler(sh_vec3 *v, float scaler) {
+sh_vec3 sh_vec3_new_mul_scaler(sh_vec3 *v, f32 scaler) {
 	return (sh_vec3) {
 		v->x * scaler,
 		v->y * scaler,
@@ -293,10 +204,7 @@ sh_vec3 sh_vec3_new_mul_scaler(sh_vec3 *v, float scaler) {
 	};
 }
 
-
-
-
-sh_vec3 sh_vec3_new_sub_vec3(sh_vec3 *v, sh_vec3 *v2) {
+sh_vec3 sh_vec3_new_sub_vec3(const sh_vec3 *v, const sh_vec3 *v2) {
 	return (sh_vec3) {
 		v->x - v2->x,
 		v->y - v2->y,
@@ -304,7 +212,7 @@ sh_vec3 sh_vec3_new_sub_vec3(sh_vec3 *v, sh_vec3 *v2) {
 	};
 }
 
-sh_vec3 sh_pos4_as_vec3_new_mul_scaler(pos4 *v, float scaler) {
+sh_vec3 sh_pos4_as_vec3_new_mul_scaler(sh_pos4 *v, f32 scaler) {
 	return (sh_vec3) {
 		v->x * scaler,
 		v->y * scaler,
@@ -312,99 +220,43 @@ sh_vec3 sh_pos4_as_vec3_new_mul_scaler(pos4 *v, float scaler) {
 	};
 }
 
-void sh_pos4_as_vec3_add_vec3(pos4 *v, sh_vec3 *v2) {
+void sh_pos4_as_vec3_add_vec3(sh_pos4 *v, sh_vec3 *v2) {
 	v->x += v2->x;
 	v->y += v2->y;
 	v->z += v2->z;
 }
 
-
-
-void sh_vec3_vec3_length_and_direction(sh_vec3 *v, sh_vec3 *v2, float *len, sh_vec3 *direction) {
-
+void sh_vec3_vec3_length_and_direction(sh_vec3 *v, sh_vec3 *v2, f32 *len, sh_vec3 *direction) {
 	sh_vec3 vec = sh_vec3_new_sub_vec3(v, v2);
-
 	*len = sh_vec3_length(&vec);
-
 	direction->x = vec.x/(*len);
 	direction->y = vec.y/(*len);
 	direction->z = vec.z/(*len);
-
 }
 
-
-void sh_vec3_length_and_direction(sh_vec3 *v, float *len, sh_vec3 *direction) {
-
+void sh_vec3_length_and_direction(sh_vec3 *v, f32 *len, sh_vec3 *direction) {
 	*len = sh_vec3_length(v);
-
 	direction->x = v->x/(*len);
 	direction->y = v->y/(*len);
 	direction->z = v->z/(*len);
-
 }
 
 void sh_vec3_vec3_reflect(sh_vec3 *v, sh_vec3 *n) {
 	f32 dot = 2*sh_vec3_dot(v, n);
 	sh_vec3_mul_scaler(n, dot);
-
 	sh_vec3_sub_vec3(v, n);
-
 }
 
-void sh_pos4_as_vec3_pos4_as_vec3_length_and_direction(pos4 *v, pos4 *v2, float *len, sh_vec3 *direction) {
-
+void sh_pos4_as_vec3_pos4_as_vec3_length_and_direction(sh_pos4 *v, sh_pos4 *v2, f32 *len, sh_vec3 *direction) {
 	sh_vec3 vec = {v2->x - v->x, v2->y - v->y, v2->z - v->z};
-
 	*len = sh_vec3_length(&vec);
-
 	direction->x = vec.x/(*len);
 	direction->y = vec.y/(*len);
 	direction->z = vec.z/(*len);
-
 }
 
-
-
-
-
-mat4 lookat(sh_vec3 eye_pos, sh_vec3 look_point, sh_vec3 up_direction) {
-	
-	sh_vec3 forward = sh_vec3_sub(eye_pos, look_point);
-	sh_vec3_normalize_ref(&forward);
-
-	sh_vec3 left = sh_vec3_cross(&up_direction, &forward);
-	sh_vec3_normalize_ref(&left);
-
-	sh_vec3 up = sh_vec3_cross(&forward, &left);
-
-	mat4 cam = {
-		left.x, left.y, left.z, -left.x*eye_pos.x - left.y*eye_pos.y - left.z*eye_pos.z,
-		up.x, up.y, up.z,         -up.x*eye_pos.x -   up.y*eye_pos.y -   up.z*eye_pos.z,
-		forward.x, forward.y, forward.z, -forward.x*eye_pos.x - forward.y*eye_pos.y - forward.z*eye_pos.z,
-		0, 0, 0, 1,
-	};
-
-
-	return cam;
-}
-
-
-mat4 perspective(float fov, float aspect, float pnear, float pfar) {
-
-    float top = (float)tan((fov / 2.0f) * 3.1459f/180.0f) * pnear;
-    float right = top * aspect;
-
-	mat4 m = {
-		pnear / right, 0, 0, 0,
-        0, pnear / top, 0, 0,
-        0, 0, -(pfar + pnear) / (pfar - pnear), -2 * pfar * pnear / (pfar - pnear),
-        0, 0, -1,0 };
-
-    return m;
-}
-
-mat4 identity_matrix() {
-	return (mat4){
+sh_mat4 sh_identity_matrix() {
+	return (sh_mat4){
 		1, 0, 0, 0,
 		0, 1, 0, 0,
 		0, 0, 1, 0,
@@ -412,12 +264,12 @@ mat4 identity_matrix() {
 	};
 }
 
-void mul_mat4_x_rot(mat4 *m, float x_angle) {
-	float ang_rad = x_angle * 3.14159f/180.0f;
-	float c = cosf(ang_rad);
-	float s = sinf(ang_rad);
-	float row_two[4] = {0};
-	float row_three[4] = {0};
+void sh_mul_mat4_x_rot(sh_mat4 *m, f32 x_angle) {
+	f32 ang_rad = x_angle * 3.14159f/180.0f;
+	f32 c = cosf(ang_rad);
+	f32 s = sinf(ang_rad);
+	f32 row_two[4] = {0};
+	f32 row_three[4] = {0};
 
 	for(int i = 0; i < 4; i++) {
 		row_two[i] = c*m->m[1*4 + i] - s*m->m[2*4 + i];
@@ -431,13 +283,12 @@ void mul_mat4_x_rot(mat4 *m, float x_angle) {
 
 }
 
-
-void mul_mat4_y_rot(mat4 *m, float x_angle) {
-	float ang_rad = x_angle * 3.14159f/180.0f;
-	float c = cosf(ang_rad);
-	float s = sinf(ang_rad);
-	float row_two[4] = {0};
-	float row_three[4] = {0};
+void sh_mul_mat4_y_rot(sh_mat4 *m, f32 x_angle) {
+	f32 ang_rad = x_angle * 3.14159f/180.0f;
+	f32 c = cosf(ang_rad);
+	f32 s = sinf(ang_rad);
+	f32 row_two[4] = {0};
+	f32 row_three[4] = {0};
 
 	for(int i = 0; i < 4; i++) {
 		row_two[i] =    c*m->m[0*4 + i] + s*m->m[2*4 + i];
@@ -451,12 +302,12 @@ void mul_mat4_y_rot(mat4 *m, float x_angle) {
 
 }
 
-void mul_mat4_z_rot(mat4 *m, float x_angle) {
-	float ang_rad = x_angle * 3.14159f/180.0f;
-	float c = cosf(ang_rad);
-	float s = sinf(ang_rad);
-	float row_two[4] = {0};
-	float row_three[4] = {0};
+void sh_mul_mat4_z_rot(sh_mat4 *m, f32 x_angle) {
+	f32 ang_rad = x_angle * 3.14159f/180.0f;
+	f32 c = cosf(ang_rad);
+	f32 s = sinf(ang_rad);
+	f32 row_two[4] = {0};
+	f32 row_three[4] = {0};
 
 	for(int i = 0; i < 4; i++) {
 		row_two[i] =    c*m->m[0*4 + i] - s*m->m[1*4 + i];
@@ -470,36 +321,75 @@ void mul_mat4_z_rot(mat4 *m, float x_angle) {
 
 }
 
-mat4 make_mat4_translate(float x, float y, float z) {
-	mat4 m = identity_matrix();
-
-	m.a.w = x;
-	m.b.w = y;
-	m.c.w = z;
-
-	return m;
-}
+sh_mat4 sh_make_mat4_translate(f32 x, f32 y, f32 z) {
 
 
-mat4 make_mat4_y_rot(float x_angle) {
-	float ang_rad = x_angle * 3.14159f/180.0f;
-	float c = cosf(ang_rad);
-	float s = sinf(ang_rad);
 
-	return (mat4){
-		c, 0, s, 0,
-		0, 1, 0, 0,
-		-s, 0, c, 0,
+	return (sh_mat4){
+		1, 0, 0, x,
+		0, 1, 0, y,
+		0, 0, 1, z,
 		0, 0, 0, 1
 	};
 }
 
-mat4 make_mat4_x_rot(float x_angle) {
-	float ang_rad = x_angle * 3.14159f/180.0f;
-	float c = cosf(ang_rad);
-	float s = sinf(ang_rad);
+void sh_mat4_translate(sh_mat4 *m, f32 x, f32 y, f32 z) {
 
-	return (mat4){
+	sh_mat4_transpose(m);
+
+	m->_mm[0][3] = m->_mm[0][0] * x + m->_mm[0][1] * y + m->_mm[0][2] * z + m->_mm[0][3];
+	m->_mm[1][3] = m->_mm[1][0] * x + m->_mm[1][1] * y + m->_mm[1][2] * z + m->_mm[1][3];
+	m->_mm[2][3] = m->_mm[2][0] * x + m->_mm[2][1] * y + m->_mm[2][2] * z + m->_mm[2][3];
+	// m->_mm[3][3] = 1;
+
+	sh_mat4_transpose(m);
+}
+
+void sh_mat4_translate_vec3(sh_mat4 *m, const sh_vec3 * const v) {
+	sh_mat4_translate(m, v->x, v->y, v->z);
+}
+
+// uses the OpenGL glRotate formula which glm also uses
+sh_mat4 sh_make_mat4_axis_rot(const sh_vec3* const a, f32 x_angle) {
+
+	const f32 c = SH_COSFD(x_angle);
+	const f32 s = SH_SINFD(x_angle);
+	const f32 x = a->x;
+	const f32 y = a->y;
+	const f32 z = a->z;
+	const f32 c_1 = 1.0f-c;
+
+	const f32 xy = x*y*c_1;
+	const f32 xz = x*z*c_1;
+	const f32 yz = y*z*c_1;
+
+	return (sh_mat4){
+		x*x*c_1+c,      xy-z*s,    xz+y*s, 0,
+	       xy+z*s,   y*y*c_1+c,    yz+x*s, 0,
+		   xz-y*s,      yz-x*s, z*z*c_1+c, 0,
+		        0,           0,         0, 1
+	};
+}
+
+sh_mat4 sh_make_mat4_y_rot(f32 x_angle) {
+	f32 ang_rad = x_angle * 3.14159f/180.0f;
+	f32 c = cosf(ang_rad);
+	f32 s = sinf(ang_rad);
+
+	return (sh_mat4){
+		 c, 0, s, 0,
+		 0, 1, 0, 0,
+		-s, 0, c, 0,
+		 0, 0, 0, 1
+	};
+}
+
+sh_mat4 sh_make_mat4_x_rot(f32 x_angle) {
+	f32 ang_rad = x_angle * 3.14159f/180.0f;
+	f32 c = cosf(ang_rad);
+	f32 s = sinf(ang_rad);
+
+	return (sh_mat4){
 		1, 0,  0, 0,
 		0, c, -s, 0,
 		0, s,  c, 0,
@@ -507,26 +397,41 @@ mat4 make_mat4_x_rot(float x_angle) {
 	};
 }
 
-mat4 make_mat4_z_rot(float x_angle) {
-	float ang_rad = x_angle * 3.14159f/180.0f;
-	float c = cosf(ang_rad);
-	float s = sinf(ang_rad);
+sh_mat4 sh_make_mat4_z_rot(f32 x_angle) {
+	f32 ang_rad = x_angle * 3.14159f/180.0f;
+	f32 c = cosf(ang_rad);
+	f32 s = sinf(ang_rad);
 
-	return (mat4){
-		c, -s,  0, 0,
+	return (sh_mat4){
+		c, -s, 0, 0,
 		s,  c, 0, 0,
-		0, 0,  1, 0,
-		0, 0,  0, 1
+		0,  0, 1, 0,
+		0,  0, 0, 1
+	};
+}
+
+sh_mat4 sh_make_mat4_scale_xyz(f32 x, f32 y, f32 z) {
+	return (sh_mat4){
+		x, 0, 0, 0,
+		0, y, 0, 0,
+		0, 0, z, 0,
+		0, 0, 0, 1
+	};
+}
+
+sh_mat4 sh_make_mat4_scale(f32 x) {
+	return (sh_mat4){
+		x, 0, 0, 0,
+		0, x, 0, 0,
+		0, 0, x, 0,
+		0, 0, 0, 1
 	};
 }
 
 
+void sh_mul_mat4_mat4(sh_mat4 *m, sh_mat4 *m2) {
 
-
-
-void mul_mat4_mat4(mat4 *m, mat4 *m2) {
-
-	mat4 mm = {0};
+	sh_mat4 mm = {0};
 	
 	mm.a.x = m->a.x * m2->a.x + m->a.y * m2->b.x + m->a.z * m2->c.x + m->a.w * m2->d.x;
 	mm.a.y = m->a.x * m2->a.y + m->a.y * m2->b.y + m->a.z * m2->c.y + m->a.w * m2->d.y;
@@ -548,14 +453,13 @@ void mul_mat4_mat4(mat4 *m, mat4 *m2) {
 	mm.d.z = m->d.x * m2->a.z + m->d.y * m2->b.z + m->d.z * m2->c.z + m->d.w * m2->d.z;
 	mm.d.w = m->d.x * m2->a.w + m->d.y * m2->b.w + m->d.z * m2->c.w + m->d.w * m2->d.w;
 
-	memcpy(m->m, mm.m, sizeof(float)*16);
+	memcpy(m->m, mm.m, sizeof(f32)*16);
 
 }
 
+sh_pos4 sh_mul_mat4_pos4(sh_pos4 *p, sh_mat4 *current_matrix) {
 
-pos4 mul_mat4_pos4(pos4 *p, mat4 *current_matrix) {
-
-	pos4 p_update = {0, 0, 0, 1};
+	sh_pos4 p_update = {0, 0, 0, 1};
 
 	p_update._d[0] = current_matrix->a.x*p->x + current_matrix->a.y*p->y + current_matrix->a.z*p->z + current_matrix->a.w*p->w;
 	p_update._d[1] = current_matrix->b.x*p->x + current_matrix->b.y*p->y + current_matrix->b.z*p->z + current_matrix->b.w*p->w;
@@ -565,8 +469,21 @@ pos4 mul_mat4_pos4(pos4 *p, mat4 *current_matrix) {
 	return p_update;
 }
 
+void sh_mul_mat4_vec3(const sh_mat4 * const current_matrix, sh_vec3 *p) {
+	sh_vec3 p_update = {0, 0, 0};
 
-float determinate(mat4 *mat) {
+	p_update._d[0] = current_matrix->a.x*p->x + current_matrix->a.y*p->y + current_matrix->a.z*p->z;
+	p_update._d[1] = current_matrix->b.x*p->x + current_matrix->b.y*p->y + current_matrix->b.z*p->z;
+	p_update._d[2] = current_matrix->c.x*p->x + current_matrix->c.y*p->y + current_matrix->c.z*p->z;
+
+	p->x = p_update.x;
+	p->y = p_update.y;
+	p->z = p_update.z;
+}
+
+
+f32 sh_determinate(sh_mat4 *mat) {
+
     return (+mat->a.x * mat->b.y  * mat->c.z * mat->d.w + mat->a.x * mat->b.z * mat->c.w * mat->d.y + mat->a.x * mat->b.w * mat->c.y * mat->d.z
             + mat->a.y * mat->b.x * mat->c.w * mat->d.z + mat->a.y * mat->b.z * mat->c.x * mat->d.w + mat->a.y * mat->b.w * mat->c.z * mat->d.x
             + mat->a.z * mat->b.x * mat->c.y * mat->d.w + mat->a.z * mat->b.y * mat->c.w * mat->d.x + mat->a.z * mat->b.w * mat->c.x * mat->d.y
@@ -579,50 +496,45 @@ float determinate(mat4 *mat) {
 
 
 //Im sorry, this was the only way,
-mat4 inverse(mat4 *mat) {
-    float det = determinate(mat);
-    return (mat4){
-               (mat->b.y * mat->c.z * mat->d.w + mat->b.z * mat->c.w * mat->d.y + mat->b.w * mat->c.y * mat->d.z - mat->b.y * mat->c.w * mat->d.z - mat->b.z * mat->c.y * mat->d.w - mat->b.w * mat->c.z * mat->d.y) / det,
-               (mat->a.y * mat->c.w * mat->d.z + mat->a.z * mat->c.y * mat->d.w + mat->a.w * mat->c.z * mat->d.y - mat->a.y * mat->c.z * mat->d.w - mat->a.z * mat->c.w * mat->d.y - mat->a.w * mat->c.y * mat->d.z) / det,
-               (mat->a.y * mat->b.z * mat->d.w + mat->a.z * mat->b.w * mat->d.y + mat->a.w * mat->b.y * mat->d.z - mat->a.y * mat->b.w * mat->d.z - mat->a.z * mat->b.y * mat->d.w - mat->a.w * mat->b.z * mat->d.y) / det,
-               (mat->a.y * mat->b.w * mat->c.z + mat->a.z * mat->b.y * mat->c.w + mat->a.w * mat->b.z * mat->c.y - mat->a.y * mat->b.z * mat->c.w - mat->a.z * mat->b.w * mat->c.y - mat->a.w * mat->b.y * mat->c.z) / det,
-               (mat->b.x * mat->c.w * mat->d.z + mat->b.z * mat->c.x * mat->d.w + mat->b.w * mat->c.z * mat->d.x - mat->b.x * mat->c.z * mat->d.w - mat->b.z * mat->c.w * mat->d.x - mat->b.w * mat->c.x * mat->d.z) / det,
-               (mat->a.x * mat->c.z * mat->d.w + mat->a.z * mat->c.w * mat->d.x + mat->a.w * mat->c.x * mat->d.z - mat->a.x * mat->c.w * mat->d.z - mat->a.z * mat->c.x * mat->d.w - mat->a.w * mat->c.z * mat->d.x) / det,
-               (mat->a.x * mat->b.w * mat->d.z + mat->a.z * mat->b.x * mat->d.w + mat->a.w * mat->b.z * mat->d.x - mat->a.x * mat->b.z * mat->d.w - mat->a.z * mat->b.w * mat->d.x - mat->a.w * mat->b.x * mat->d.z) / det,
-               (mat->a.x * mat->b.z * mat->c.w + mat->a.z * mat->b.w * mat->c.x + mat->a.w * mat->b.x * mat->c.z - mat->a.x * mat->b.w * mat->c.z - mat->a.z * mat->b.x * mat->c.w - mat->a.w * mat->b.z * mat->c.x) / det,
-               (mat->b.x * mat->c.y * mat->d.w + mat->b.y * mat->c.w * mat->d.x + mat->b.w * mat->c.x * mat->d.y - mat->b.x * mat->c.w * mat->d.y - mat->b.y * mat->c.x * mat->d.w - mat->b.w * mat->c.y * mat->d.x) / det,
-               (mat->a.x * mat->c.w * mat->d.y + mat->a.y * mat->c.x * mat->d.w + mat->a.w * mat->c.y * mat->d.x - mat->a.x * mat->c.y * mat->d.w - mat->a.y * mat->c.w * mat->d.x - mat->a.w * mat->c.x * mat->d.y) / det,
-               (mat->a.x * mat->b.y * mat->d.w + mat->a.y * mat->b.w * mat->d.x + mat->a.w * mat->b.x * mat->d.y - mat->a.x * mat->b.w * mat->d.y - mat->a.y * mat->b.x * mat->d.w - mat->a.w * mat->b.y * mat->d.x) / det,
-               (mat->a.x * mat->b.w * mat->c.y + mat->a.y * mat->b.x * mat->c.w + mat->a.w * mat->b.y * mat->c.x - mat->a.x * mat->b.y * mat->c.w - mat->a.y * mat->b.w * mat->c.x - mat->a.w * mat->b.x * mat->c.y) / det,
-               (mat->b.x * mat->c.z * mat->d.y + mat->b.y * mat->c.x * mat->d.z + mat->b.z * mat->c.y * mat->d.x - mat->b.x * mat->c.y * mat->d.z - mat->b.y * mat->c.z * mat->d.x - mat->b.z * mat->c.x * mat->d.y) / det,
-               (mat->a.x * mat->c.y * mat->d.z + mat->a.y * mat->c.z * mat->d.x + mat->a.z * mat->c.x * mat->d.y - mat->a.x * mat->c.z * mat->d.y - mat->a.y * mat->c.x * mat->d.z - mat->a.z * mat->c.y * mat->d.x) / det,
-               (mat->a.x * mat->b.z * mat->d.y + mat->a.y * mat->b.x * mat->d.z + mat->a.z * mat->b.y * mat->d.x - mat->a.x * mat->b.y * mat->d.z - mat->a.y * mat->b.z * mat->d.x - mat->a.z * mat->b.x * mat->d.y) / det,
-			   (mat->a.x * mat->b.y * mat->c.z + mat->a.y * mat->b.z * mat->c.x + mat->a.z * mat->b.x * mat->c.y - mat->a.x * mat->b.z * mat->c.y - mat->a.y * mat->b.x * mat->c.z - mat->a.z * mat->b.y * mat->c.x) / det};
+sh_mat4 sh_inverse(sh_mat4 *mat) {
+    f32 det = sh_determinate(mat);
+	return (sh_mat4){
+		(mat->b.y * mat->c.z * mat->d.w + mat->b.z * mat->c.w * mat->d.y + mat->b.w * mat->c.y * mat->d.z - mat->b.y * mat->c.w * mat->d.z - mat->b.z * mat->c.y * mat->d.w - mat->b.w * mat->c.z * mat->d.y) / det,
+		(mat->a.y * mat->c.w * mat->d.z + mat->a.z * mat->c.y * mat->d.w + mat->a.w * mat->c.z * mat->d.y - mat->a.y * mat->c.z * mat->d.w - mat->a.z * mat->c.w * mat->d.y - mat->a.w * mat->c.y * mat->d.z) / det,
+		(mat->a.y * mat->b.z * mat->d.w + mat->a.z * mat->b.w * mat->d.y + mat->a.w * mat->b.y * mat->d.z - mat->a.y * mat->b.w * mat->d.z - mat->a.z * mat->b.y * mat->d.w - mat->a.w * mat->b.z * mat->d.y) / det,
+		(mat->a.y * mat->b.w * mat->c.z + mat->a.z * mat->b.y * mat->c.w + mat->a.w * mat->b.z * mat->c.y - mat->a.y * mat->b.z * mat->c.w - mat->a.z * mat->b.w * mat->c.y - mat->a.w * mat->b.y * mat->c.z) / det,
+		(mat->b.x * mat->c.w * mat->d.z + mat->b.z * mat->c.x * mat->d.w + mat->b.w * mat->c.z * mat->d.x - mat->b.x * mat->c.z * mat->d.w - mat->b.z * mat->c.w * mat->d.x - mat->b.w * mat->c.x * mat->d.z) / det,
+		(mat->a.x * mat->c.z * mat->d.w + mat->a.z * mat->c.w * mat->d.x + mat->a.w * mat->c.x * mat->d.z - mat->a.x * mat->c.w * mat->d.z - mat->a.z * mat->c.x * mat->d.w - mat->a.w * mat->c.z * mat->d.x) / det,
+		(mat->a.x * mat->b.w * mat->d.z + mat->a.z * mat->b.x * mat->d.w + mat->a.w * mat->b.z * mat->d.x - mat->a.x * mat->b.z * mat->d.w - mat->a.z * mat->b.w * mat->d.x - mat->a.w * mat->b.x * mat->d.z) / det,
+		(mat->a.x * mat->b.z * mat->c.w + mat->a.z * mat->b.w * mat->c.x + mat->a.w * mat->b.x * mat->c.z - mat->a.x * mat->b.w * mat->c.z - mat->a.z * mat->b.x * mat->c.w - mat->a.w * mat->b.z * mat->c.x) / det,
+		(mat->b.x * mat->c.y * mat->d.w + mat->b.y * mat->c.w * mat->d.x + mat->b.w * mat->c.x * mat->d.y - mat->b.x * mat->c.w * mat->d.y - mat->b.y * mat->c.x * mat->d.w - mat->b.w * mat->c.y * mat->d.x) / det,
+		(mat->a.x * mat->c.w * mat->d.y + mat->a.y * mat->c.x * mat->d.w + mat->a.w * mat->c.y * mat->d.x - mat->a.x * mat->c.y * mat->d.w - mat->a.y * mat->c.w * mat->d.x - mat->a.w * mat->c.x * mat->d.y) / det,
+		(mat->a.x * mat->b.y * mat->d.w + mat->a.y * mat->b.w * mat->d.x + mat->a.w * mat->b.x * mat->d.y - mat->a.x * mat->b.w * mat->d.y - mat->a.y * mat->b.x * mat->d.w - mat->a.w * mat->b.y * mat->d.x) / det,
+		(mat->a.x * mat->b.w * mat->c.y + mat->a.y * mat->b.x * mat->c.w + mat->a.w * mat->b.y * mat->c.x - mat->a.x * mat->b.y * mat->c.w - mat->a.y * mat->b.w * mat->c.x - mat->a.w * mat->b.x * mat->c.y) / det,
+		(mat->b.x * mat->c.z * mat->d.y + mat->b.y * mat->c.x * mat->d.z + mat->b.z * mat->c.y * mat->d.x - mat->b.x * mat->c.y * mat->d.z - mat->b.y * mat->c.z * mat->d.x - mat->b.z * mat->c.x * mat->d.y) / det,
+		(mat->a.x * mat->c.y * mat->d.z + mat->a.y * mat->c.z * mat->d.x + mat->a.z * mat->c.x * mat->d.y - mat->a.x * mat->c.z * mat->d.y - mat->a.y * mat->c.x * mat->d.z - mat->a.z * mat->c.y * mat->d.x) / det,
+		(mat->a.x * mat->b.z * mat->d.y + mat->a.y * mat->b.x * mat->d.z + mat->a.z * mat->b.y * mat->d.x - mat->a.x * mat->b.y * mat->d.z - mat->a.y * mat->b.z * mat->d.x - mat->a.z * mat->b.x * mat->d.y) / det,
+		(mat->a.x * mat->b.y * mat->c.z + mat->a.y * mat->b.z * mat->c.x + mat->a.z * mat->b.x * mat->c.y - mat->a.x * mat->b.z * mat->c.y - mat->a.y * mat->b.x * mat->c.z - mat->a.z * mat->b.y * mat->c.x) / det};
 }
 
-
-float sh_pos4_pos4_length(pos4 *p, pos4 *p2) {
+f32 sh_pos4_pos4_length(sh_pos4 *p, sh_pos4 *p2) {
 
 	f32 x = p2->x - p->x;
 	f32 y = p2->y - p->y;
 	f32 z = p2->z - p->z;
 
-	return (float)sqrt( x*x + y*y + z*z );
+	return (f32)sqrt( x*x + y*y + z*z );
 }
 
-
-float sh_pos4_length(pos4 *p) {
-	return (float)sqrt( p->x*p->x + p->y*p->y + p->z*p->z );
+f32 sh_pos4_length(sh_pos4 *p) {
+	return (f32)sqrt( p->x*p->x + p->y*p->y + p->z*p->z );
 }
 
-void sh_pos4_normalize_ref(pos4 *p) {
-	float len = sh_pos4_length(p);
+void sh_pos4_normalize_ref(sh_pos4 *p) {
+	f32 len = sh_pos4_length(p);
 
 	p->x /= len;
 	p->y /= len;
 	p->z /= len;
 }
 
-
-
-#endif

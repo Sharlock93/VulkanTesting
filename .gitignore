@@ -35,4 +35,12 @@
 *.ilk
 *.gfxr
 
+# Generated Project Files
+*.sln
+*.spv
+*.rdbg
+*.cap
+premake_files
+
 src/opengl_window.c
+.vs

@@ -1,9 +1,0 @@
-prefix=T:/src/install
-includedir=${prefix}/include
-
-Name: SPIRV-Headers
-Description: Header files from the SPIR-V registry
-Version: 1.10.0
-Requires:
-Libs:
-Cflags: -I${includedir}
