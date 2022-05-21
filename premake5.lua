@@ -1,5 +1,14 @@
 characterset "ASCII"
 
+newaction {
+	trigger = "clean_up",
+	description = "Clean up the generated files",
+	execute = function() 
+		os.rmdir("premake_files")
+		os.remove("Vulkan.sln")
+	end
+}
+
 workspace "Vulkan"
 	architecture "x86_64"
 	configurations { "Debug", "Release" }
