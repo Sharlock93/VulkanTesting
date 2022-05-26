@@ -121,7 +121,7 @@ VkSampler sh_create_sampler(sh_vulkan_context_t *vk_ctx, i8 enable_anisotropy) {
 		.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT,
 		.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT,
 		.mipLodBias = 0.0,
-		.anisotropyEnable = enable_anisotropy ? VK_TRUE : VK_FALSE,
+		.anisotropyEnable = enable_anisotropy == 1 ? VK_TRUE : VK_FALSE,
 		.maxAnisotropy = 1.0,
 		.compareEnable = VK_FALSE,
 		.minLod = 0.0,

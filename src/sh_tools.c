@@ -2,7 +2,6 @@
 
 sh_log_tracker_t sh_global_log_tracker;
 
-
 void* buf__grow(void *buf, int items, int item_size) {
 	int new_cap = items + 2*buf_cap(buf);
 	int new_size = sizeof(int)*2 + new_cap*item_size;

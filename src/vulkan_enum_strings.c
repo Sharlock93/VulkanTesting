@@ -1,3 +1,6 @@
+#define VK_NO_PROTOTYPES
+#include <vulkan/vulkan.h>
+
 #include "glslang/glslang_c_shader_types.h"
 #include "glslang/glslang_c_interface.h"
 #include "sh_tools.h"

@@ -1178,7 +1178,7 @@ sh_window_context_t* sh_win_setup(void) {
 	ctx->y = 0;
 	ctx->window_name = "hello world";
 
-	sh_create_window(ctx);
+	sh_create_window_win32(ctx);
 
 	return ctx;
 }

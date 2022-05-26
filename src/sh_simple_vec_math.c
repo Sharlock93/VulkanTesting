@@ -107,9 +107,6 @@ sh_mat4 sh_perspective(f32 fov, f32 aspect, f32 pnear, f32 pfar) {
     return m;
 }
 
-
-
-
 f32 sh_vec3_lengthsq(sh_vec3 *p) {
 	return p->x*p->x + p->y*p->y + p->z*p->z;
 }
@@ -537,4 +534,3 @@ void sh_pos4_normalize_ref(sh_pos4 *p) {
 	p->y /= len;
 	p->z /= len;
 }
-

@@ -1,11 +1,7 @@
 #ifndef SH_TOOLS
 #define SH_TOOLS
 
-#include <stdint.h>
-#include <stdarg.h>
-
-#ifndef SH_BASIC_TYPES
-#define SH_BASIC_TYPES
+#include <inttypes.h>
 
 #define SH_MAX(a, b) ((a) > (b) ? (a) : (b))
 #define SH_MIN(a, b) ((a) < (b) ? (a) : (b))
@@ -24,15 +20,12 @@ typedef int64_t i64;
 typedef float  f32;
 typedef double f64;
 
-#endif
-
 // purely used as a debugging help and "once only", after every call this gets replaced
 typedef struct sh_log_tracker_t {
 	const char* function_name;
 	const char* file_name;
 	i32 line_number;
 } sh_log_tracker_t;
-
 
 typedef struct bhdr {
 	u32 size;

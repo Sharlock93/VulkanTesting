@@ -366,6 +366,7 @@ void sh_generate_img_mipmap(sh_vulkan_context_t *vk_ctx, sh_vk_image_allocation_
 	
 	vkCmdBlitImage2(vk_ctx->temp_buffer, &blit_info);
 
+
 	CHECK_VK_RESULT(vkEndCommandBuffer(vk_ctx->temp_buffer););
 
 	VkCommandBufferSubmitInfo cmd_submit_info = {

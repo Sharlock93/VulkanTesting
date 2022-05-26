@@ -1,10 +1,6 @@
 #ifndef SH_LOAD_VULKAN_H
 #define SH_LOAD_VULKAN_H
 
-#define VK_NO_PROTOTYPES
-
-#include <vulkan/vulkan.h>
-#include "vulkan_enum_strings.c"
 #include "vulkan_extensions_to_enable.h"
 #include <glslang/glslang_c_interface.h>
 #include <glslang/glslang_c_shader_types.h>
@@ -40,27 +36,11 @@
 	sh_global_log_tracker.file_name = "";\
 }
 
-#if LOAD_VK
-	#define SH_VK_FUNC(name) PFN_##name name
-	#define SH_LOAD_VK_GET_INST_PROC_ADDR(name) name = (PFN_##name)GetProcAddress(vulkan_lib, #name);\
-		if(name == NULL) {\
-			log_debugl("Function Loading Failed: %s", #name, __FILE__, __LINE__);\
-			exit(1);\
-		}
-#else
-	#define SH_LOAD_VK_GET_INST_PROC_ADDR(name)
-    #define SH_VK_FUNC(name)
-#endif
-
-
-#include "sh_funcs_to_load.h"
-
-#undef SH_VK_FUNC
-
 typedef struct sh_vk_memory_manager_t sh_vk_memory_manager_t;
+typedef VkPhysicalDevice*;
 
 typedef struct sh_vulkan_pdevice {
-	VkPhysicalDevice device;
+	VkPhysicalDevice* device;
 	VkPhysicalDeviceFeatures2 *features; //reenable if needed
 	VkPhysicalDeviceProperties2 *properties; //reenable if needed TODO(sharo): if reenabled make sure to update sh_select_physical_device
 	VkDevice ldevice;
@@ -74,42 +54,42 @@ typedef struct sh_vk_shader_module_t {
 } sh_vk_shader_module_t;
 
 typedef struct sh_vulkan_context_t {
+	VkCommandPool cmd_pool;
+	VkCommandBuffer temp_buffer;
 
-	sh_vulkan_pdevice device_info;
 	VkInstance instance;
     VkQueue queue;
 	VkDebugUtilsMessengerEXT debug_msgr;
+
+	VkSurfaceKHR surface;
+	VkSwapchainKHR swapchain;
+
+	VkPipelineLayout layout;
+	VkRenderPass render_pass;
+	VkPipeline pipeline;
+
+    VkSemaphore render_semaphore;
+    VkSemaphore present_semaphore;
+
+	sh_vulkan_pdevice device_info;
 	u32 queue_family_selected;
+
+	f32 clear_color[4];
 
 	const char** layers_enabled;
 	const char** extensions_enabled;
 	const char** pdevice_extensions_enabled;
 
-	VkSurfaceKHR surface;
-	VkSwapchainKHR swapchain;
-	VkImageView *img_views;
-    VkFormat *img_formats;
-    VkPipelineLayout layout;
-    VkRenderPass render_pass;
-    VkPipeline pipeline;
+	VkImageView            *img_views;
+    VkFormat               *img_formats;
+    VkFramebuffer          *framebuffers;
+    VkCommandBuffer        *cmd_buffers;
+	VkDescriptorSetLayout  *set_layouts;
+	VkDescriptorSet        *descriptor_sets;
+	VkDescriptorPool       *descriptor_pools;
 
-    VkFramebuffer *framebuffers;
-    VkCommandPool cmd_pool;
-    VkCommandBuffer *cmd_buffers;
-    VkCommandBuffer temp_buffer;
-
-    VkSemaphore render_semaphore;
-    VkSemaphore present_semaphore;
-	sh_vk_shader_module_t *shader_modules;
-
-	VkDescriptorSetLayout *set_layouts;
-	VkDescriptorSet 	  *descriptor_sets;
-	VkDescriptorPool 	  *descriptor_pools;
-
+	sh_vk_shader_module_t  *shader_modules;
 	sh_vk_memory_manager_t *mem;
-
-	f32 clear_color[4];
-
 } sh_vulkan_context_t;
 
 typedef struct sh_vk_spirv_shader_t {
@@ -135,7 +115,6 @@ VkShaderStageFlagBits _sh_type_to_stage_map[] = {
 	[SH_SHADER_TYPE_VERTEX] = VK_SHADER_STAGE_VERTEX_BIT,
 	[SH_SHADER_TYPE_FRAGMENT] = VK_SHADER_STAGE_FRAGMENT_BIT,
 };
-
 
 typedef i8 (*sh_pdev_select_func)(VkPhysicalDeviceProperties device);
 typedef i8 (*sh_qfamily_select_func)(sh_vulkan_context_t *vk_ctx, VkQueueFamilyProperties2 *properties, u32 queue_index);

@@ -46,5 +46,3 @@ typedef struct sh_vertex {
 	i32 material_id;
 	i32 enable_material;
 } sh_vertex;
-
-

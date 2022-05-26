@@ -44,3 +44,6 @@ premake_files
 
 src/opengl_window.c
 .vs
+*.zip
+README
+README.md
