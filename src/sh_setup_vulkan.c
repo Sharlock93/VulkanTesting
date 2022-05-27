@@ -218,8 +218,8 @@ void sh_setup_surface_and_rendering(sh_window_context_t *wn, sh_vulkan_context_t
 	log_debugl("Surface Formats:");
 	for(u32 i = 0; i < surface_format_count; i++) {
 		log_debug_morel("\t[%d] %-35s - %s", i,
-				get_vk_format_flags_name(surface_formats[i].surfaceFormat.format),
-				get_vk_surface_format_color_space_name(surface_formats[i].surfaceFormat.colorSpace)
+				sh_get_format_flag_name(surface_formats[i].surfaceFormat.format),
+				sh_get_surface_format_color_space_name(surface_formats[i].surfaceFormat.colorSpace)
 				);
 	}
 
@@ -244,7 +244,7 @@ void sh_setup_surface_and_rendering(sh_window_context_t *wn, sh_vulkan_context_t
 			);
 	log_debugl("Surface Present Modes [%d]", surface_present_mode);
 	for(u32 i = 0; i < surface_present_mode; i++) {
-		log_debug_morel("\t[%d] %s", i, get_vk_present_mode_name(present_modes[i]));
+		log_debug_morel("\t[%d] %s", i, sh_get_present_mode_name(present_modes[i]));
 	}
 
 }

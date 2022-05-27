@@ -1,6 +1,9 @@
 #ifndef SH_LOAD_VULKAN_H
 #define SH_LOAD_VULKAN_H
 
+#define VK_NO_PROTOTYPES
+#include <vulkan/vulkan.h>
+
 #include "vulkan_extensions_to_enable.h"
 #include <glslang/glslang_c_interface.h>
 #include <glslang/glslang_c_shader_types.h>
@@ -37,10 +40,9 @@
 }
 
 typedef struct sh_vk_memory_manager_t sh_vk_memory_manager_t;
-typedef VkPhysicalDevice*;
 
 typedef struct sh_vulkan_pdevice {
-	VkPhysicalDevice* device;
+	VkPhysicalDevice device;
 	VkPhysicalDeviceFeatures2 *features; //reenable if needed
 	VkPhysicalDeviceProperties2 *properties; //reenable if needed TODO(sharo): if reenabled make sure to update sh_select_physical_device
 	VkDevice ldevice;

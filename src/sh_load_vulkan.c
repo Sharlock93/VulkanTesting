@@ -1,9 +1,9 @@
 #include "../headers/sh_load_vulkan.h"
+#include "sh_funcs_to_load.h"
 
 #define VK_NO_PROTOTYPES
 #include <vulkan/vulkan.h>
 
-#include "sh_funcs_to_load.h"
 
 void sh_load_vulkan_funcs(void) {
 	HMODULE vulkan_lib = LoadLibrary("vulkan-1.dll");

@@ -29,10 +29,13 @@
 #include "sh_simple_vec_math.c"
 #include "sh_types.h"
 #include "sh_win_platform.c"
+#include "sh_vk_enum_strings.c"
 #include "sh_load_vulkan.c"
 #include "sh_vulkan_mem_allocator.c"
 #include "sh_setup_vulkan.c"
 #include "sh_objloader.c"
+#include "sh_vk_tools.c"
+#include "sh_engine_core.c"
 
 #define TINYOBJ_LOADER_C_IMPLEMENTATION
 #include "tinyobject/tinyobj_loader_c.h"
@@ -67,148 +70,6 @@ i8 queue_family_selector(sh_vulkan_context_t *vk_ctx, VkQueueFamilyProperties2 *
 	return 0;
 }
 
-void sh_queue_submit(
-		VkQueue queue,
-		u32 wait_semphs_count,
-		VkSemaphore *wait_semphs,
-		VkPipelineStageFlags *wait_stages,
-		u32 cmd_buf_count,
-		VkCommandBuffer *cmd_bufs,
-		u32 signal_semphs_count,
-		VkSemaphore *signal_semphs,
-		VkPipelineStageFlags *signal_stages)
-{
-
-	// we will reuse across frames
-	static VkSemaphoreSubmitInfo *semph_infos = NULL;
-	buf_clear(semph_infos);
-	buf_fit(semph_infos, wait_semphs_count + signal_semphs_count);
-	VkSemaphoreSubmitInfo semph_info = {
-		.sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO,
-		.pNext = NULL,
-		.deviceIndex = 0
-	};
-
-	for(u32 i = 0; i < wait_semphs_count; i++) {
-		semph_info.semaphore = wait_semphs[i];
-		semph_info.stageMask = wait_stages[i];
-		buf_push(semph_infos, semph_info);
-	}
-
-	// abuse the fact that both wait and signal semphs are the same struct so put them in the same array
-
-	for(u32 i = 0; i < signal_semphs_count; i++) {
-		semph_info.semaphore = signal_semphs[i];
-		semph_info.stageMask = signal_stages[i];
-		buf_push(semph_infos, semph_info);
-	}
-
-	VkCommandBufferSubmitInfo *cmd_submit_infos = NULL;
-	buf_fit(cmd_submit_infos, cmd_buf_count);
-
-	VkCommandBufferSubmitInfo cmd_submit_info = {
-		.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO,
-		.pNext = NULL,
-		.deviceMask = 0
-	};
-
-	for(u32 i = 0; i < cmd_buf_count; i++) {
-		cmd_submit_info.commandBuffer = cmd_bufs[i];
-		buf_push(cmd_submit_infos, cmd_submit_info);
-	}
-
-	VkSubmitInfo2 sub_info = {
-		.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO_2,
-		.pNext = NULL,
-
-		.waitSemaphoreInfoCount  = wait_semphs_count,
-		.pWaitSemaphoreInfos = semph_infos,
-
-		.commandBufferInfoCount = cmd_buf_count,
-		.pCommandBufferInfos = cmd_submit_infos,
-
-		.signalSemaphoreInfoCount = signal_semphs_count,
-		.pSignalSemaphoreInfos = semph_infos + wait_semphs_count
-	};
-
-	CHECK_VK_RESULT(vkQueueSubmit2(queue, 1, &sub_info, VK_NULL_HANDLE));
-}
-
-void sh_buf_mem_sync_copy(VkCommandBuffer cmd_buf, VkPipelineStageFlags2 stage, VkAccessFlags2 access) {
-
-	VkMemoryBarrier2 mem_barrier = {
-		.sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER_2,
-		.pNext = NULL,
-		.srcStageMask = VK_PIPELINE_STAGE_2_COPY_BIT,
-		.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT,
-		.dstStageMask = stage,
-		.dstAccessMask = access
-	};
-
-	VkDependencyInfo dep_info = {
-		.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
-		.pNext = NULL,
-		.dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT,
-		.memoryBarrierCount = 1,
-		.pMemoryBarriers = &mem_barrier,
-		.bufferMemoryBarrierCount = 0,
-		.imageMemoryBarrierCount = 0
-	};
-
-	vkCmdPipelineBarrier2(cmd_buf, &dep_info);
-
-}
-
-typedef struct sh_camera {
-	sh_vec3 eye;
-	sh_vec3 fwd;
-	sh_vec3 up;
-	sh_mat4 mat;
-} sh_camera;
-
-
-sh_camera sh_setup_camera(sh_vec3 *eye, sh_vec3 *look_at, sh_vec3 *up) {
-
-	sh_vec3 fwd = sh_vec3_new_sub_vec3(eye, look_at);
-	sh_vec3_normalize_ref(&fwd);
-	sh_mat4 cam =  sh_lookat(eye, look_at, up);
-	sh_mat4_transpose(&cam);
-
-	return (sh_camera){.eye = *eye, .fwd = fwd, .up = *up, .mat = cam};
-}
-
-void sh_camera_move_fwd(sh_camera *cam, f32 amount) {
-	sh_vec3 translate = sh_vec3_new_mul_scaler(&cam->fwd, amount);
-	sh_vec3_add_vec3(&cam->eye, &translate);
-	sh_mat4_translate_vec3(&cam->mat, &translate);
-}
-
-void sh_camera_move_hor(sh_camera *cam, f32 amount) {
-	sh_vec3 right = sh_vec3_cross(&cam->fwd, &cam->up);
-	sh_vec3 translate = sh_vec3_new_mul_scaler(&right, amount);
-	sh_vec3_add_vec3(&cam->eye, &translate);
-	sh_mat4_translate_vec3(&cam->mat, &translate);
-}
-
-void sh_camera_move_vert(sh_camera *cam, f32 amount) {
-	sh_vec3 translate = sh_vec3_new_mul_scaler(&cam->up, amount);
-	sh_vec3_add_vec3(&cam->eye, &translate);
-	sh_mat4_translate_vec3(&cam->mat, &translate);
-}
-
-void sh_camera_lookat_mouse(sh_camera *cam, f32 x_delta, f32 y_delta) {
-	sh_vec3 right = sh_vec3_cross(&cam->fwd, &cam->up);
-	sh_vec3_normalize_ref(&right);
-
-	sh_mat4 rot = sh_make_mat4_axis_rot(&right, y_delta);
-	sh_mat4 rot_up = sh_make_mat4_y_rot(x_delta);
-
-	sh_mul_mat4_vec3(&rot_up, &cam->fwd);
-	sh_mul_mat4_vec3(&rot, &cam->fwd);
-
-	sh_mul_mat4_mat4(&cam->mat, &rot_up);
-	sh_mul_mat4_mat4(&cam->mat, &rot);
-}
 
 void sh_read_obj_file(void *ctx, const char *file, int is_mtl, const char *obj_filename, char **buf, size_t *len) {
 	u64 siz = 0;
@@ -455,7 +316,7 @@ int main() {
 		sh_vec3 eye = {0.0f, 20.0f, 20.0f};
 		sh_vec3 lookat = {0.0f, 0.0f, 0.0f};
 		sh_vec3 up = {0.0, 1.0f, 0.0f};
-		cam = sh_setup_camera(&eye, &lookat, &up);
+		cam = sh_setup_cam(&eye, &lookat, &up);
 	}
 
 	sh_mat4 matrices[3] = {
@@ -557,12 +418,8 @@ int main() {
 	}
 
 
-	// VkDescriptorImageInfo sampler_info = {
-	// 	.sampler = sampler.handle,
-	// 	.imageView = VK_NULL_HANDLE,
-	// };
 
-		VkWriteDescriptorSet descriptor_writes[] = {
+	VkWriteDescriptorSet descriptor_writes[] = {
 		{
 			.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
 			.pNext = NULL,
@@ -675,43 +532,43 @@ int main() {
 			if(ctx->ctrl.pressed) amount = 5.0f;
 
 			if(ctx->keyboard['W'].pressed) {
-				sh_camera_move_fwd(&cam, amount*frame_time);
+				sh_cam_move_fwd(&cam, amount*frame_time);
 				matrices[1] = cam.mat;
 				uniform_change = 1;
 			}
 
 			if(ctx->keyboard['S'].pressed) {
-				sh_camera_move_fwd(&cam, -amount*frame_time);
+				sh_cam_move_fwd(&cam, -amount*frame_time);
 				matrices[1] = cam.mat;
 				uniform_change = 1;
 			}
 
 			if(ctx->keyboard['D'].pressed) {
-				sh_camera_move_hor(&cam, amount*frame_time);
+				sh_cam_move_hor(&cam, amount*frame_time);
 				matrices[1] = cam.mat;
 				uniform_change = 1;
 			}
 
 			if(ctx->keyboard['A'].pressed) {
-				sh_camera_move_hor(&cam, -amount*frame_time);
+				sh_cam_move_hor(&cam, -amount*frame_time);
 				matrices[1] = cam.mat;
 				uniform_change = 1;
 			}
 
 			if(ctx->keyboard[' '].pressed) {
-				sh_camera_move_vert(&cam, amount*frame_time);
+				sh_cam_move_vert(&cam, amount*frame_time);
 				matrices[1] = cam.mat;
 				uniform_change = 1;
 			}
 
 			if(ctx->keyboard['K'].pressed) {
-				sh_camera_move_vert(&cam, -amount*frame_time);
+				sh_cam_move_vert(&cam, -amount*frame_time);
 				matrices[1] = cam.mat;
 				uniform_change = 1;
 			}
 
 			if((ctx->mouse->delta_x != 0 || ctx->mouse->delta_y != 0) && ctx->mouse->left.pressed) {
-				sh_camera_lookat_mouse(&cam,
+				sh_cam_lookat_mouse(&cam,
 					(f32)ctx->mouse->delta_x*frame_time,
 					(f32)ctx->mouse->delta_y*frame_time
 				);
@@ -740,7 +597,11 @@ int main() {
 		VkCommandBuffer cmd_buf = vk_ctx->cmd_buffers[image_view_index];
 		VkFramebuffer frame_buf = vk_ctx->framebuffers[image_view_index];
 
-		vkResetCommandPool( vk_ctx->device_info.ldevice, vk_ctx->cmd_pool, 0);
+		// reset only when we hit the final image
+		if(image_view_index >= (buf_len(vk_ctx->cmd_buffers)-1)) {
+			vkQueueWaitIdle(vk_ctx->queue);
+			SH_MARK_DEBUG_POINT(vkResetCommandPool( vk_ctx->device_info.ldevice, vk_ctx->cmd_pool, 0));
+		}
 
 		sh_begin_render(cmd_buf);
 
@@ -841,7 +702,7 @@ int main() {
 		CHECK_VK_RESULT(vkQueuePresentKHR(vk_ctx->queue, &present));
 
 		// highly inefficient and we are stalling every frame
-        vkQueueWaitIdle(vk_ctx->queue);
+        // vkQueueWaitIdle(vk_ctx->queue);
     }
 
 	destroy_vulkan_instance(vk_ctx);

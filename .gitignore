@@ -47,3 +47,5 @@ src/opengl_window.c
 *.zip
 README
 README.md
+
+*.scor*
