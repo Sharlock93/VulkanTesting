@@ -293,7 +293,8 @@ sh_vk_spirv_shader_t sh_compile_shader_input(sh_shader_input_t *shader) {
 
 	if(shader_source == NULL) {
 		log_debugl("Shader source for file %s couldn't be read", shader->filename);
-		exit(-1);
+
+		return (sh_vk_spirv_shader_t){0};
 	}
 	
 	glslang_stage_t stage;
@@ -327,15 +328,30 @@ sh_vk_spirv_shader_t sh_compile_shader_input(sh_shader_input_t *shader) {
 
 	glslang_program_t *program = glslang_program_create();
 	glslang_shader_t *shad = glslang_shader_create(&input);
+	sh_vk_spirv_shader_t compiled_shader = {0};
 
 	if(!glslang_shader_preprocess(shad, &input)) {
 		log_debugl("Couldn't do shader preprocessing..");
-		log_debugl("%s", glslang_shader_get_info_log(shad));
+
+		char temp[1024] = {0};
+		sprintf(temp, "%s%s", "build", shader->filename);
+		const char* log = glslang_shader_get_info_log(shad);
+		i32 col_index = sh_str_find_char(log, ':', 2);
+		i32 line_num = 0;
+		sh_str_parse_int(log + col_index + 1, &line_num);
+		log_debugl_file("%s", temp, line_num, log);
 	}
 
 	if(!glslang_shader_parse(shad, &input)) {
 		log_debugl("Coudln't parse shader: %s", shader->filename);
-		log_debugl("%s", glslang_shader_get_info_log(shad));
+		char temp[1024] = {0};
+		sprintf(temp, "%s%s", "build", shader->filename);
+		const char* log = glslang_shader_get_info_log(shad);
+		i32 col_index = sh_str_find_char(log, ':', 2);
+		i32 line_num = 0;
+		sh_str_parse_int(log + col_index + 1, &line_num);
+		log_debugl_file("%s", temp, line_num, log);
+		return compiled_shader;
 	}
 
 	glslang_program_add_shader(program, shad);
@@ -343,6 +359,7 @@ sh_vk_spirv_shader_t sh_compile_shader_input(sh_shader_input_t *shader) {
 	if(!glslang_program_link(program, GLSLANG_MSG_SPV_RULES_BIT | GLSLANG_MSG_VULKAN_RULES_BIT)) {
 		log_debugl("For shader (%s) coudln't link the program.", shader->filename);
 		log_debug_morel("Linker Error:\n%s", glslang_program_get_info_log(program));
+		return compiled_shader;
 	}
 
 	glslang_program_SPIRV_generate(program, input.stage);
@@ -352,9 +369,9 @@ sh_vk_spirv_shader_t sh_compile_shader_input(sh_shader_input_t *shader) {
 				glslang_program_SPIRV_get_messages(program),
 				glslang_program_get_info_debug_log(program)
 		);
-	}
 
-	sh_vk_spirv_shader_t compiled_shader = {0};
+		return compiled_shader;
+	}
 
 	size_t data_size_in_bytes = glslang_program_SPIRV_get_size(program)*sizeof(u32);
 	compiled_shader.data = (u32*)calloc(data_size_in_bytes, sizeof(char));

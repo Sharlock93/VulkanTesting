@@ -37,12 +37,29 @@ typedef union sh_color_f32 {
 
 } sh_color_f32;
 
-typedef sh_color_f32 sh_vertex_color;
+typedef union sh_color3_f32 {
+	struct {
+		f32 red;
+		f32 green;
+		f32 blue;
+	};
+	struct {
+		f32 r;
+		f32 g;
+		f32 b;
+	};
+
+	f32 d[3];
+} sh_color3_f32;
+
+
+typedef sh_color_i32 sh_vertex_color;
 
 typedef struct sh_vertex {
 	sh_vec3 position;
-	sh_vertex_color color;
+	sh_vec3 normal;
 	sh_tex_coord tex;
+	sh_vertex_color color;
 	i32 material_id;
 	i32 enable_material;
 } sh_vertex;

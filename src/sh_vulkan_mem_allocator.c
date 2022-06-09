@@ -115,9 +115,9 @@ VkSampler sh_create_sampler(sh_vulkan_context_t *vk_ctx, i8 enable_anisotropy) {
 		.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO,
 		.pNext = NULL,
 		.flags = 0,
-		.magFilter = VK_FILTER_LINEAR,
-		.minFilter = VK_FILTER_LINEAR,
-		.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR,
+		.magFilter = VK_FILTER_NEAREST,
+		.minFilter = VK_FILTER_NEAREST,
+		.mipmapMode = VK_SAMPLER_MIPMAP_MODE_NEAREST,
 		.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT,
 		.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT,
 		.mipLodBias = 0.0,
@@ -280,6 +280,7 @@ void sh_copy_buf_to_img(sh_vulkan_context_t *vk_ctx, sh_vk_buffer_allocation_t *
 		VK_ACCESS_2_TRANSFER_WRITE_BIT,
 		VK_IMAGE_LAYOUT_UNDEFINED,
 		VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+		VK_IMAGE_ASPECT_COLOR_BIT,
 		0,
 		1
 	);
@@ -354,6 +355,9 @@ void sh_img_layout_transition(VkCommandBuffer cmd,
 
 	VkImageLayout old_layout,
 	VkImageLayout new_layout,
+
+	VkImageAspectFlags aspect,
+
 	i32 mipmap_level,
 	i32 mipmap_level_count)
 {
@@ -369,7 +373,7 @@ void sh_img_layout_transition(VkCommandBuffer cmd,
 		.newLayout = new_layout,
 		.image = image->img,
 		.subresourceRange = {
-			.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+			.aspectMask = aspect,
 			.baseMipLevel = mipmap_level,
 			.levelCount = mipmap_level_count,
 			.baseArrayLayer = 0,

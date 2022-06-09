@@ -20,7 +20,7 @@ typedef union {
 	};
 
 	f32 _d[4];
-} sh_pos4;
+} sh_vec4, sh_pos4;
 
 typedef union {
 	struct {

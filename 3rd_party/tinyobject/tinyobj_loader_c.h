@@ -35,13 +35,21 @@ typedef struct {
   float specular[3];
   float transmittance[3];
   float emission[3];
+  float translucency[3]; //Tf
   float shininess;
   float ior;      /* index of refraction */
   float dissolve; /* 1 == opaque; 0 == fully transparent */
   /* illumination model (see http://www.fileformat.info/format/material/) */
   int illum;
 
+
+  float roughness; //Pr
+  float metallic; //Pm
+  float sheen; //Ps
+
   int pad0;
+
+
 
   char *ambient_texname;            /* map_Ka */
   char *diffuse_texname;            /* map_Kd */
@@ -973,6 +981,18 @@ static int tinyobj_parse_and_index_mtl_file(tinyobj_material_t **materials_out,
       continue;
     }
 
+	/* emission */
+	if (token[0] == 'T' && token[1] == 'f' && IS_SPACE(token[2])) {
+		float r, g, b;
+		token += 2;
+		parseFloat3(&r, &g, &b, &token);
+		material.translucency[0] = r;
+		material.translucency[1] = g;
+		material.translucency[2] = b;
+		continue;
+	}
+
+
     /* shininess */
     if (token[0] == 'N' && token[1] == 's' && IS_SPACE(token[2])) {
       token += 2;
@@ -986,6 +1006,29 @@ static int tinyobj_parse_and_index_mtl_file(tinyobj_material_t **materials_out,
       material.illum = parseInt(&token);
       continue;
     }
+
+	/* roughness */
+	if (token[0] == 'P' && token[1] == 'r' && IS_SPACE(token[2])) {
+		token += 2;
+		material.roughness = parseFloat(&token);
+		continue;
+	}
+
+	/* metallic */
+	if (token[0] == 'P' && token[1] == 'm' && IS_SPACE(token[2])) {
+		token += 2;
+		material.metallic = parseFloat(&token);
+		continue;
+	}
+
+	/* sheen */
+	if (token[0] == 'P' && token[1] == 's' && IS_SPACE(token[2])) {
+		token += 2;
+		material.sheen = parseFloat(&token);
+		continue;
+	}
+
+
 
     /* dissolve */
     if ((token[0] == 'd' && IS_SPACE(token[1]))) {

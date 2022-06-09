@@ -40,6 +40,8 @@
 }
 
 typedef struct sh_vk_memory_manager_t sh_vk_memory_manager_t;
+typedef struct sh_vk_image_view_allocation_t sh_vk_image_view_allocation_t;
+typedef struct sh_vk_image_allocation_t sh_vk_image_allocation_t;
 
 typedef struct sh_vulkan_pdevice {
 	VkPhysicalDevice device;
@@ -66,9 +68,9 @@ typedef struct sh_vulkan_context_t {
 	VkSurfaceKHR surface;
 	VkSwapchainKHR swapchain;
 
-	VkPipelineLayout layout;
-	VkRenderPass render_pass;
-	VkPipeline pipeline;
+	VkPipelineLayout *layout;
+	VkRenderPass *render_pass;
+	VkPipeline *pipeline;
 
     VkSemaphore render_semaphore;
     VkSemaphore present_semaphore;
@@ -90,6 +92,9 @@ typedef struct sh_vulkan_context_t {
 	VkDescriptorSet        *descriptor_sets;
 	VkDescriptorPool       *descriptor_pools;
 
+	sh_vk_image_view_allocation_t *g_buffer;
+	sh_vk_image_allocation_t *g_buffer_img;
+
 	sh_vk_shader_module_t  *shader_modules;
 	sh_vk_memory_manager_t *mem;
 } sh_vulkan_context_t;
@@ -109,7 +114,7 @@ typedef enum sh_shader_type_t {
 
 typedef struct sh_shader_input_t {
 	sh_shader_type_t type;
-	const char *filename;
+	const sh_str filename;
 } sh_shader_input_t;
 
 VkShaderStageFlagBits _sh_type_to_stage_map[] = {

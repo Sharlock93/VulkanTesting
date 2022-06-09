@@ -1,18 +1,23 @@
 #version 450
-layout(location = 0) in vec4 fragColor;
-layout(location = 1) in vec2 texCoord;
-layout(location = 2) flat in int mat_id;
-layout(location = 3) flat in int has_material;
+#extension GL_GOOGLE_include_directive : require
+#extension GL_EXT_nonuniform_qualifier : require
+#extension GL_EXT_debug_printf : require
+#include "shader/hello.vert"
 
-layout(location = 0) out vec4 color;
+layout(location = 0) flat in int f_material_id;
+layout(location = 1) in vec3     f_normal;
+layout(location = 2) in vec4     f_position;
 
-layout(set = 0, binding = 2) uniform sampler2D samp[12];
+
+layout(location = 0) out int o_material_id;
+layout(location = 1) out vec4  o_normal;
+layout(location = 2) out vec4  o_position;
 
 void main() {
-	if(has_material == 1) {
-		color = fragColor;
-	} else {
-		color = vec4( texture(samp[(mat_id)], texCoord).rgb, 1.0f);
-	}
+
+	o_material_id = f_material_id;
+	o_normal = vec4(f_normal, 1.0f);
+	o_position = f_position;
+
 }
 

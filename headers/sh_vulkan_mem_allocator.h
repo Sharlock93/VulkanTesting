@@ -57,7 +57,7 @@ void                   sh_copy_buf_data_to_gpu_sync(sh_vulkan_context_t *vk_ctx,
 void                   sh_copy_img_data_to_gpu_sync(sh_vulkan_context_t *vk_ctx, sh_vk_image_allocation_t *mem_alloc, i32 data_offset, i32 data_size, u8 *data_to_send);
 void                   sh_copy_buf_to_img(sh_vulkan_context_t *vk_ctx, sh_vk_buffer_allocation_t *buffer, sh_vk_image_allocation_t *image);
 
-void 				   sh_img_layout_transition(VkCommandBuffer cmd, sh_vk_image_allocation_t *image, VkPipelineStageFlags2 src_stage, VkAccessFlags2 src_access, VkPipelineStageFlags2 dst_stage, VkAccessFlags2 dst_access, VkImageLayout old_layout, VkImageLayout new_layout, i32 mipmap_level, i32 mipmap_level_count);
+void 				   sh_img_layout_transition(VkCommandBuffer cmd, sh_vk_image_allocation_t *image, VkPipelineStageFlags2 src_stage, VkAccessFlags2 src_access, VkPipelineStageFlags2 dst_stage, VkAccessFlags2 dst_access, VkImageLayout old_layout, VkImageLayout new_layout, VkImageAspectFlags aspect, i32 mipmap_level, i32 mipmap_level_count);
 
 sh_vk_buffer_allocation_t sh_allocate_buffer(sh_vulkan_context_t *vk_ctx, i32 size, VkBufferUsageFlags usage, VkMemoryPropertyFlags memtype);
 void sh_deallocate_buffer(sh_vulkan_context_t *vk_ctx, sh_vk_buffer_allocation_t *buf);

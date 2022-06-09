@@ -76,15 +76,11 @@ void _log_debug(i8 newline, i8 more, char *fmt, ...) {
 FILETIME sh_get_file_last_write(char *filename) {
 	WIN32_FILE_ATTRIBUTE_DATA file_attrib;
 	int success = GetFileAttributesExA(filename, GetFileExInfoStandard, &file_attrib);
-
 	if(success == 0) {
-		printf("suomething is fucke\n");
+		printf("something went wrong\n");
 	}
-
 	assert(success == 1);
-
 	return file_attrib.ftLastWriteTime;
-
 }
 
 i8 sh_check_file_changed(char *filename, FILETIME *last_write_time, FILETIME *last_write_time_out) {
@@ -173,4 +169,133 @@ void _assert_exit(i32 assert_condition, i32 line_number, const char *file, const
 		fflush(stdout);
 		exit(1);
 	}
+}
+
+
+i8 sh_str_equal(sh_str str1, sh_str str2) {
+	return strcmp(str1, str2) == 0;
+}
+
+sh_size_t sh_str_len(sh_cstr str1) {
+	return strlen(str1);
+}
+
+// assume length is str size not including null byte
+sh_str sh_str_copy(sh_str str, sh_size_t length) {
+	sh_str new_str = (sh_str) calloc(length+1, 1);
+	memcpy(new_str, str, length);
+	new_str[length] = '\0';
+	return new_str;
+}
+
+sh_file_tracker_t sh_create_file_tracker() {
+	return (sh_file_tracker_t){0};
+}
+
+void sh_file_tracker_add(sh_file_tracker_t *tracker, const sh_str file, sh_fchange_callback_func* callback, void* arg) {
+	sh_str *files = tracker->files;
+	u32 file_count = buf_len(files);
+
+	i32 found = -1;
+	for(u32 i = 0; i < file_count; i++) {
+		if(sh_str_equal(files[i], file)) {
+			found = i;
+			break;
+		}
+	}
+
+	if(found > -1) {
+		buf_push(tracker->callbacks[found], (sh_fchange_callback_t){callback, arg, 0});
+	} else {
+
+		sh_str file_name_copy = sh_str_copy(file, sh_str_len(file));
+
+		buf_push(tracker->files, file_name_copy);
+		buf_push(tracker->times, sh_get_file_last_write(file_name_copy));
+		buf_push(tracker->changed, 0);
+		buf_push(tracker->callbacks, NULL);
+		buf_push(tracker->callbacks[buf_len(tracker->callbacks)-1], (sh_fchange_callback_t){callback, arg, 0});
+	}
+}
+
+void sh_file_tracker_update(sh_file_tracker_t *tracker) {
+	sh_str *files = tracker->files;
+	i8 *changed = tracker->changed;
+	u32 size = buf_len(files);
+
+	i8 send_signal = 0;
+	i8 all_handled = 1;
+	for(u32 i = 0; i < size; i++) {
+		send_signal = changed[i];
+		if(!send_signal) {
+			send_signal = sh_check_file_changed(files[i], tracker->times + i, tracker->times + i);
+		}
+
+		if(send_signal) {
+			all_handled = 1;
+			sh_fchange_callback_t *cb = tracker->callbacks[i];
+			u32 cb_size = buf_len(cb);
+			for(u32 j = 0; j < cb_size; j++) {
+				if(cb[j].handled == 0) {
+					cb[j].handled = cb[j].f(files[i], tracker->times + j, cb[j].arg);
+					all_handled = all_handled && cb[j].handled;
+					cb[j].handled = 0;
+				}
+			}
+			changed[i] = all_handled == 0;
+		}
+	}
+}
+
+i32 sh_str_find_char(sh_cstr str1, u8 ch, i32 occurance) {
+	sh_size_t str_len = sh_str_len(str1);
+	u32 count = 0;
+	for(u32 i = 0; i < str_len; i++) {
+		if(str1[i] == ch) count++;
+		if(count == occurance) return i;
+	}
+	return -1;
+}
+
+i8 sh_is_digit(u8 ch) {
+	if(ch >= '0' && ch <= '9') return 1;
+	return 0;
+}
+
+i8 sh_char_to_number(u8 ch, i32 *val) {
+	if(sh_is_digit(ch)) {
+		*val = (i32)ch - '0';
+		return 1;
+	}
+	return 0;
+}
+
+
+i8 sh_str_parse_int(sh_cstr str, i32 *val) {
+	sh_size_t str_size = sh_str_len(str);
+
+	if(!sh_is_digit(str[0])) { return 0; }
+
+	sh_cstr end = str;
+	for(u32 i = 0; i < str_size; i++) {
+		if(sh_is_digit(end[0])) {
+			end++;
+		} else {
+			break;
+		}
+	}
+
+	sh_size_t size = (end - str);
+
+	if(size == 0) return 0;
+
+	end--;
+	*val = 0;
+	for(i32 i = 0; i < size; i++) {
+		i32 digit = 0;
+		sh_char_to_number(end[-i], &digit);
+		*val += digit*(i32)pow(10, i);
+	}
+
+	return 1;
 }

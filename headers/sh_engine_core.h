@@ -1,3 +1,10 @@
+#define SH_HEX_TO_FLOAT4(hex) {  ((hex >> 24) & 0xFF)/255.f, ((hex >> 16) & 0xFF)/255.0f, ((hex>>8) & 0xFF)/255.0f, (hex & 0xFF)/255.0f }
+#define SH_FLOAT4_TO_HEX(float4) \
+							  ((i32)(float4[0]*255.0f) << 24)\
+							| ((i32)(float4[1]*255.0f) << 16)\
+							| ((i32)(float4[2]*255.0f) <<  8)\
+							| ((i32)(float4[3]*255.0f) <<  0)\
+
 typedef struct sh_camera {
 	sh_vec3 eye;
 	sh_vec3 fwd;
