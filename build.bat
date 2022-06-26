@@ -19,7 +19,7 @@ SPVRemapper.lib
 
 set third_party_headers="./3rd_party/"
 set third_party_libs="./3rd_party/libs/"
-set compiler_ops= -W3 /wd5105 /Zi /MD /EHsc /std:c11
+set compiler_ops= -W3 /wd5105 /O2 /MD /EHsc /std:c11
 set link_ops=/LIBPATH:%third_party_libs% /LIBPATH:"3rd_party/libs/glslang_libs/"
 
 cl /nologo ^

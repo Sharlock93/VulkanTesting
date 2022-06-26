@@ -65,6 +65,10 @@ sh_vk_sampler_allocation_t sh_allocate_sampler(sh_vulkan_context_t *vk_ctx, i8 e
 sh_vk_image_allocation_t sh_allocate_2D_image(sh_vulkan_context_t *vk_ctx, i32 width, i32 height, VkImageUsageFlags usage, VkMemoryPropertyFlags mem_type, VkFormat format, i8 generate_mipmap);
 sh_vk_image_view_allocation_t sh_allocate_image_view(sh_vulkan_context_t *vk_ctx, sh_vk_image_allocation_t *img, VkImageAspectFlags aspect);
 
+
+void sh_deallocate_2D_image(sh_vulkan_context_t *vk_ctx, sh_vk_image_allocation_t *img);
+void sh_deallocate_image_view(sh_vulkan_context_t *vk_ctx, sh_vk_image_view_allocation_t* img_view);
+
 sh_vk_mapped_buffer_t sh_map_vk_buffer(sh_vulkan_context_t *vk_ctx, sh_vk_buffer_allocation_t *buffer, u64 size_to_map);
 void sh_unmap_vk_buffer(sh_vulkan_context_t *vk_ctx, sh_vk_mapped_buffer_t *mapped_buf);
 void sh_copy_data_to_mapped_buf(sh_vk_mapped_buffer_t *buffer, u64 size, u8* data);

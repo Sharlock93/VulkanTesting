@@ -1,11 +1,6 @@
 #define SH_PI 3.1415926535897f
 #define SH_EPSILON 0.00001
 
-// struct sh_light_t {
-// 	vec3 light_pos;
-// 	vec3 light_color;
-// };
-
 struct sh_material_t {
 	vec3 diffuse;
 	vec3 ambient;
@@ -155,3 +150,17 @@ vec4 pbr(vec3 position, vec3 emission, vec3 diffuse, vec3 specular, vec3 scene_a
 
 	return vec4(final_color, 1.0f);
 }
+
+float pnear = 0.1f;
+float pfar = 100.0f;
+
+float linearize_depth(float depth) {
+	depth = 2.0*depth - 1.0f;
+	float A = -(pfar + pnear) / (pfar - pnear);
+	float B = -2 * pfar * pnear / (pfar - pnear);
+	depth = -B/(depth + A);
+	depth /= -pfar;
+	return depth;
+}
+
+

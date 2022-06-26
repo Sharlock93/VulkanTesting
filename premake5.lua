@@ -56,7 +56,11 @@ workspace "Vulkan"
 		os.mkdir("./premake_files/shader/")
 		os.copyfile("./build/shader/fragment.frag", './premake_files/shader/fragment.frag')
 		os.copyfile("./build/shader/vertex.vert", './premake_files/shader/vertex.vert')
-		os.copyfile("./build/shader/hello.vert", './premake_files/shader/hello.vert')
+		os.copyfile("./build/shader/common.vert", './premake_files/shader/common.vert')
+
+		os.copyfile("./build/shader/fragment_shader_post_process.frag", './premake_files/shader/fragment_shader_post_process.frag')
+		os.copyfile("./build/shader/vertex_shader_post_process.vert", './premake_files/shader/vertex_shader_post_process.vert')
+
 
 		files {"headers/*.h", "src/*.c", "build/shader/*.vert", "build/shader/*.frag"}
 		removefiles {"src/opengl_window.c"}

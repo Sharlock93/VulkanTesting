@@ -4,7 +4,7 @@
 #extension GL_EXT_nonuniform_qualifier : require
 
 // includes must be from the path of the executables location
-#include "shader/hello.vert"
+#include "shader/common.vert"
 
 
 vec3 rect_coords[4] = {
@@ -23,12 +23,10 @@ vec2 tex_coords[4] = {
 
 
 layout(location = 0) out vec2 f_tex_coord;
-layout(location = 1) out vec3 f_view_dir;
 
 void main() {
 	gl_Position  = vec4(rect_coords[gl_VertexIndex], 1.00);
 	f_tex_coord  = tex_coords[gl_VertexIndex];
-	f_view_dir = normalize(v.cam_pos - texture(samp[3], f_tex_coord).xyz);
 }
 
 

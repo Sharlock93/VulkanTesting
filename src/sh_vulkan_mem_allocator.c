@@ -115,9 +115,9 @@ VkSampler sh_create_sampler(sh_vulkan_context_t *vk_ctx, i8 enable_anisotropy) {
 		.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO,
 		.pNext = NULL,
 		.flags = 0,
-		.magFilter = VK_FILTER_NEAREST,
-		.minFilter = VK_FILTER_NEAREST,
-		.mipmapMode = VK_SAMPLER_MIPMAP_MODE_NEAREST,
+		.magFilter = VK_FILTER_LINEAR,
+		.minFilter = VK_FILTER_LINEAR,
+		.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR,
 		.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT,
 		.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT,
 		.mipLodBias = 0.0,
@@ -456,6 +456,63 @@ void sh_deallocate_buffer(sh_vulkan_context_t *vk_ctx, sh_vk_buffer_allocation_t
 }
 
 
+void sh_deallocate_2D_image(sh_vulkan_context_t *vk_ctx, sh_vk_image_allocation_t *img) {
+
+	i32 mem_index = img->device_mem_index;
+	i32 buf_count = buf_len(vk_ctx->mem->image_allocs);
+
+	i32 buf_index = -1;
+	for(i32 i = 0; i < buf_count; i++) {
+		if(vk_ctx->mem->image_allocs[i].img == img->img){
+			buf_index = i;
+			break;
+		}
+	}
+
+	if(buf_index > 0) {
+		sh_vk_image_allocation_t *v = vk_ctx->mem->image_allocs + buf_index;
+		SH_MARK_DEBUG_POINT(vkDestroyImage(vk_ctx->device_info.ldevice, v->img,  NULL ));
+		v->img = VK_NULL_HANDLE;
+		v->height = 0;
+		v->width = 0;
+		v->buffer_offset = 0;
+		v->device_mem_index = -1;
+	}
+
+	SH_MARK_DEBUG_POINT(
+		vkFreeMemory(
+			vk_ctx->device_info.ldevice,
+			vk_ctx->mem->device_mems[mem_index].mem,
+			NULL
+		)
+	);
+
+	vk_ctx->mem->device_mems[mem_index].mem = VK_NULL_HANDLE;
+	vk_ctx->mem->device_mems[mem_index].size = 0;
+
+}
+
+
+
+void sh_deallocate_image_view(sh_vulkan_context_t *vk_ctx, sh_vk_image_view_allocation_t *img) {
+
+	i32 buf_count = buf_len(vk_ctx->mem->image_allocs);
+
+	i32 buf_index = -1;
+	for(i32 i = 0; i < buf_count; i++) {
+		if(vk_ctx->mem->image_view_allocs[i].handle == img->handle){
+			buf_index = i;
+			break;
+		}
+	}
+
+	if(buf_index > 0) {
+		sh_vk_image_view_allocation_t *v = vk_ctx->mem->image_view_allocs + buf_index;
+		SH_MARK_DEBUG_POINT(vkDestroyImageView(vk_ctx->device_info.ldevice, v->handle,  NULL ));
+		v->handle = VK_NULL_HANDLE;
+	}
+
+}
 
 
 sh_vk_sampler_allocation_t sh_allocate_sampler(sh_vulkan_context_t *vk_ctx, i8 enable_anisotropy) {

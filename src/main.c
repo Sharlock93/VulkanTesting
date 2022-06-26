@@ -17,6 +17,7 @@
 
 #include <Windows.h>
 #include <dbgHelp.h>
+#include <wdbgexts.h>
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -262,6 +263,23 @@ SH_MAKE_FCHANGE_CALLBACK(shader_meow) {
 
 int main() {
 
+	u64 mask_affinity = 0x2;
+
+	// HANDLE thread;
+	// GetCurrentProcessHandle(&thread);
+
+	log_debugl("%d", SetProcessAffinityMask( GetCurrentProcess() , mask_affinity )) ;
+	log_debugl("%d", SetThreadAffinityMask( GetCurrentThread() , mask_affinity )) ;
+
+	u32 m1 = 0;
+	u32 m2 = 0;
+
+	u64 meow1 = __rdtsc();
+	u64 meow2 = __rdtsc();
+
+	log_debugl("%lld %lld %lld %d %d %d", meow1, meow2, meow2 - meow1, m1, m2, m2 - m1);
+
+	exit(0);
 	tinyobj_attrib_t material_test = {0};
 	tinyobj_shape_t *material_shape = NULL;
 	u64 material_shape_count;
@@ -319,13 +337,13 @@ int main() {
 	sh_window_context_t *ctx = sh_win_setup();
 	sh_vulkan_context_t *vk_ctx = sh_vk_setup(ctx, physical_device_selector, queue_family_selector, spirv_shaders);
 
-	// for(u32 i = 0; i < buf_len(vk_ctx->shader_modules); i++) {
-	// 	sh_ptr *args = NULL;
-	// 	buf_push(args, (sh_ptr)&(vk_ctx->shader_modules[i]));
-	// 	buf_push(args, (sh_ptr)ctx);
-	// 	buf_push(args, (sh_ptr)vk_ctx);
-	// 	sh_file_tracker_add(&tracker, shaders[i].filename, shader_changed, args);
-	// }
+	for(u32 i = 0; i < buf_len(vk_ctx->shader_modules); i++) {
+		sh_ptr *args = NULL;
+		buf_push(args, (sh_ptr)&(vk_ctx->shader_modules[i]));
+		buf_push(args, (sh_ptr)ctx);
+		buf_push(args, (sh_ptr)vk_ctx);
+		sh_file_tracker_add(&tracker, shaders[i].filename, shader_changed, args);
+	}
 
 	sh_camera cam;
 	{
@@ -546,12 +564,83 @@ int main() {
 		// update at a fixed 60 FPS
 
 		if(ctx->size_changed) {
-			log_debugl("Sorry I haven't implemented resize yet");
-			exit(1);
 			sh_recreate_rendering_resources(ctx, vk_ctx);
 			matrices[0] = sh_perspective(50.0f, (f32)ctx->width/(f32)ctx->height, 0.1f, 100.0f);
 			sh_mat4_transpose(matrices);
+
 			uniform_change = 1;
+
+			VkDescriptorImageInfo g_buffer_descriptors[] = {
+				{ .sampler = sampler.handle, .imageView = vk_ctx->g_buffer[0].handle, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL },
+				{ .sampler = sampler.handle, .imageView = vk_ctx->g_buffer[1].handle, VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_STENCIL_READ_ONLY_OPTIMAL },
+				{ .sampler = sampler.handle, .imageView = vk_ctx->g_buffer[2].handle, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL },
+				{ .sampler = sampler.handle, .imageView = vk_ctx->g_buffer[3].handle, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL },
+			};
+
+			VkWriteDescriptorSet descriptor_write_textures[] = {
+
+				{
+					.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+					.pNext = NULL,
+					.dstSet = vk_ctx->descriptor_sets[0],
+					.dstBinding = 2,
+					.dstArrayElement = 0,
+					.descriptorCount = 1,
+					.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+					.pImageInfo = &g_buffer_descriptors[0],
+					.pBufferInfo = 0,
+					.pTexelBufferView = NULL
+				},
+				{
+					.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+					.pNext = NULL,
+					.dstSet = vk_ctx->descriptor_sets[0],
+					.dstBinding = 2,
+					.dstArrayElement = 1,
+					.descriptorCount = 1,
+					.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+					.pImageInfo = g_buffer_descriptors+1,
+					.pBufferInfo = 0,
+					.pTexelBufferView = NULL
+				},
+				{
+					.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+					.pNext = NULL,
+					.dstSet = vk_ctx->descriptor_sets[0],
+					.dstBinding = 2,
+					.dstArrayElement = 2,
+					.descriptorCount = 1,
+					.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+					.pImageInfo = g_buffer_descriptors+2,
+					.pBufferInfo = 0,
+					.pTexelBufferView = NULL
+				},
+				{
+					.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+					.pNext = NULL,
+					.dstSet = vk_ctx->descriptor_sets[0],
+					.dstBinding = 2,
+					.dstArrayElement = 3,
+					.descriptorCount = 1,
+					.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+					.pImageInfo = g_buffer_descriptors+3,
+					.pBufferInfo = 0,
+					.pTexelBufferView = NULL
+				},
+
+			};
+
+
+			SH_MARK_DEBUG_POINT(
+				vkUpdateDescriptorSets(
+					vk_ctx->device_info.ldevice,
+					SH_ARRAY_SIZE(descriptor_write_textures),
+					descriptor_write_textures,
+					0,
+					NULL
+				)
+			);
+
 		}
 
 		while(acc_time >= frame_time) {
@@ -662,7 +751,6 @@ int main() {
 			vkCmdUpdateBuffer(cmd_buf, uniform_buffer.buf, 0,                                             sizeof(sh_mat4)*3, matrices);
 			vkCmdUpdateBuffer(cmd_buf, uniform_buffer.buf, sizeof(sh_mat4)*3,                             sizeof(sh_vec3),   &cam.eye);
 			vkCmdUpdateBuffer(cmd_buf, uniform_buffer.buf, sizeof(sh_mat4)*3+sizeof(sh_vec3),             sizeof(i32),       &light_count);
-
 			vkCmdUpdateBuffer(cmd_buf, uniform_buffer.buf, sizeof(sh_mat4)*3+sizeof(sh_vec3)+sizeof(i32)+sizeof(f32), sizeof(u32), &ctx->width);
 			vkCmdUpdateBuffer(cmd_buf, uniform_buffer.buf, sizeof(sh_mat4)*3+sizeof(sh_vec3)+sizeof(i32)+sizeof(f32)+sizeof(u32), sizeof(u32), &ctx->height);
 			sh_buf_mem_sync_copy(cmd_buf, VK_PIPELINE_STAGE_2_VERTEX_SHADER_BIT, VK_ACCESS_2_UNIFORM_READ_BIT);

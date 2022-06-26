@@ -402,11 +402,22 @@ void sh_destroy_command_pool(sh_vulkan_context_t *vk_ctx) {
 }
 
 void sh_destroy_framebuffers(sh_vulkan_context_t *vk_ctx) {
+
+	for(u32 i = 0; i < buf_len(vk_ctx->g_buffer); i++) {
+		sh_deallocate_image_view(vk_ctx, vk_ctx->g_buffer + i);
+	}
+
+	for(u32 i = 0; i < buf_len(vk_ctx->g_buffer_img); i++) {
+		sh_deallocate_2D_image(vk_ctx, vk_ctx->g_buffer_img + i);
+	}
+
 	for(u32 i = 0; i < buf_len(vk_ctx->framebuffers); i++) {
 		vkDestroyFramebuffer(vk_ctx->device_info.ldevice, vk_ctx->framebuffers[i], NULL);
 	}
 
 	buf_clear(vk_ctx->framebuffers);
+	buf_clear(vk_ctx->g_buffer);
+	buf_clear(vk_ctx->g_buffer_img);
 }
 
 void sh_destroy_image_view(sh_vulkan_context_t *vk_ctx) {
@@ -418,9 +429,17 @@ void sh_destroy_image_view(sh_vulkan_context_t *vk_ctx) {
 
 void sh_destroy_graphics_pipeline(sh_vulkan_context_t* vk_ctx) {
 
-	// vkDestroySwapchainKHR(vk_ctx->device_info.ldevice, vk_ctx->swapchain, NULL);
-	// vkDestroyPipelineLayout(vk_ctx->device_info.ldevice, vk_ctx->layout, NULL);
-	// vkDestroyPipeline(vk_ctx->device_info.ldevice, vk_ctx->pipeline, NULL);
+	vkDestroySwapchainKHR(vk_ctx->device_info.ldevice, vk_ctx->swapchain, NULL);
+	for(u32 i = 0; i < buf_len(vk_ctx->layout); i++) {
+		vkDestroyPipelineLayout(vk_ctx->device_info.ldevice, vk_ctx->layout[i], NULL);
+	}
+
+	for(u32 i = 0; i < buf_len(vk_ctx->pipeline); i++) {
+		vkDestroyPipeline(vk_ctx->device_info.ldevice, vk_ctx->pipeline[i], NULL);
+	}
+
+	buf_clear(vk_ctx->pipeline);
+	buf_clear(vk_ctx->layout);
 
 }
 
@@ -872,13 +891,20 @@ sh_create_graphics_pipeline(
 	VkPipelineShaderStageCreateInfo *pipeline_shaders = NULL;
 	for(i32 i = 0; i < shaders_count; i++) {
 
+		char *entry_name = "main";
+
+		if(shaders[i].stage == VK_SHADER_STAGE_FRAGMENT_BIT) {
+			entry_name = "fmain";
+		}
+
+
 		VkPipelineShaderStageCreateInfo pipeline_shader = {
 			.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
 			.pNext = NULL, 
 			.flags = 0,
 			.stage = shaders[i].stage,
 			.module = shaders[i].shader_module,
-			.pName = "main",
+			.pName = entry_name,
 			.pSpecializationInfo = NULL
 		};
 
